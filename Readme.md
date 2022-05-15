@@ -14,14 +14,14 @@ Analysis Geo 880**
 
 
 ## Abstract 
-<!-- Throughout the year female and male wild boars spend rather little time together – young males leave the sounder between their 2nd and 4th year and only during the mating season from November to December adult, male wild boars will join the sounder of females. With such different social behaviors of males and females, it would be interesting to see, if their behaviors in the face of a deterrence differ. -->
+Throughout the year female and male wild boars spend rather little time together – young males leave the sounder between their 2nd and 4th year and only during the mating season from November to December adult, male wild boars will join the sounder of females. With such different social behaviors of males and females, it would be interesting to see, if their behaviors in the face of a deterrence differ.
 
 ## Research Questions
-<!-- Are the movement patterns after an encounter with a deterrence of female and male wild boars different (flight distance, speed during the escape, returning to the field yes/no,...)?
- -->
+Are the movement patterns after an encounter with a deterrence of female and male wild boars different (flight distance, speed during the escape, returning to the field yes/no,...)?
+
 
 ## Results / products
-<!-- Considering the socials groups in which the females are usually living in, it could be suspected, that they wouldn’t flee as far as males. Therefore, female wild boars might show quite different movement patterns after encountering a deterrence. 
+Considering the socials groups in which the females are usually living in, it could be suspected, that they wouldn’t flee as far as males. Therefore, female wild boars might show quite different movement patterns after encountering a deterrence. 
 
  Process - Idea
 1. buffer deterrence locations (lat, lon) with buffer= 1(?)km 
@@ -31,31 +31,31 @@ Analysis Geo 880**
 5. calculate escape distance, speed 
 6. try to figure out if/how often/ after how much time (deterrence still active?) a boar returns to a field/ location it was deterred from
 7. statistical analysis to find out if the before mentioned things differ between females and males
- -->
+
 
 ## Data
-<!-- Data used: wild boar and deterrence data from the CMA library 
- -->
+Data used: wild boar and deterrence data from the CMA library 
+
 
 ## R concepts
-<!-- Which R concepts, functions, packages will you mainly use. 
+Which R concepts, functions, packages will you mainly use. 
 library(ComputationalMovementAnalysisData)
 library(dplyr)
 library(lubridate)
 library(sf)
 library(ggplot2)
 What additional spatial analysis methods will you be using? 
--->
+
 
 ## Risk analysis
-<!-- What could be the biggest challenges/problems you might face? What is your plan B? 
+What could be the biggest challenges/problems you might face? What is your plan B? 
 Looking at my preliminary process idea a lot of details of how I will do things are still unclear.
 I will probably encounter a lot of challenges as I go (considering my limited knowledge on R), but I don't see any risks that would make answering the research question impossible.
--->
+
 
 ## Questions? 
-<!-- Which questions would you like to discuss at the coaching session? 
+Which questions would you like to discuss at the coaching session? 
 - Is there more data on the tracked individuals (such as age)? (maybe research question could be extended to include not only sex, but also age/hierarchical status of the animals)
 - Do I have to take features of the deterrence itself (lautstraerke, installations hoehe, intervall) into account? 
 
--->
+
