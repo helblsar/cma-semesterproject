@@ -3,18 +3,17 @@
 **Patterns & Trends in Environmental Data / Computational Movement
 Analysis Geo 880**
 
-| Semester:      | FS22                              |
-|----------------|---------------------------------- |
-| **Data:**      | Wild Boar Movement Data           |
-| **Title:**     | A comparison of behavior of female|
-|                |  and male wild boars after an     |
-|                |  encounter with the "Wildschwein- |
-|                |  schreck"                         |
-| **Student 1:** | Sarah Helbling                    |
+| Semester:      | FS22                                   |
+|----------------|--------------------------------------- |
+| **Data:**      | Wild Boar Movement Data                |
+| **Title:**     | A comparison of the behaviour of female|
+|                |  and male wild boars after an encounter|
+|                |   with the "Wildschweinschreck"        |
+| **Student 1:** | Sarah Helbling                         |
 
 
 ## Abstract 
-Throughout the year female and male wild boars spend rather little time together – young males leave the sounder between their 2nd and 4th year and only during the mating season from November to December adult, male wild boars will join the sounder of females. With such different social behaviors of males and females, it would be interesting to see, if their behaviors in the face of a deterrence differ.
+Throughout the year female and male wild boars spend rather little time together – young males leave the sounder between their 2nd and 4th year and only during the mating season from November to December adult, male wild boars will join the sounder of females. With such different social behaviours of males and females, it would be interesting to see, if their behaviours in the face of a deterrence differ.
 
 ## Research Questions
 Are the movement patterns after an encounter with a deterrence of female and male wild boars different (flight distance, speed during the escape, returning to the field yes/no,...)?
@@ -50,7 +49,7 @@ What additional spatial analysis methods will you be using?
 ## Risk analysis
 What could be the biggest challenges/problems you might face? What is your plan B? 
 Looking at my preliminary process idea a lot of details of how I will do things are still unclear.
-I will probably encounter a lot of challenges as I go (considering my limited knowledge on R), but I don't see any risks that would make answering the research question impossible.
+I will probably encounter a lot of challenges as I go (considering my limited knowledge on R), but until I encounter them there is no telling how much of a risk they will pose to answering the research question.
 
 
 ## Questions? 
