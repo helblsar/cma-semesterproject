@@ -19,6 +19,349 @@ output: html_document
 
 ## Material and Methods
 
+```{r, echo = FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+``` 
+
+
+### Data
+```{r Libraries, include=FALSE}
+library(ComputationalMovementAnalysisData)
+library(dplyr)
+library(lubridate)
+library(sf)
+library(ggplot2)
+```
+The Computational Movement Analysis Data contains: 
+- wildboar data: wildschwein_BE, wildschwein_metadata, wildschwein_overlap_temp
+- wildschwein schreck data: schreck_agenda, schreck_locations
+
+```{r RawData}
+# Metadata
+meta_d<-wildschwein_metadata
+boars_sex<-meta_d%>%
+  select(TierID,Sex)
+
+# Boar data
+boars<-wildschwein_BE
+boars<-inner_join(boars, boars_sex, by="TierID")%>%
+  st_as_sf(coords=c("E","N"), crs=2056, remove=FALSE)%>%
+  distinct()
+
+# Separating the boar data based on the sex
+f_boars<-boars %>%
+  filter(Sex=="f")%>%
+  group_by(TierID)%>%
+  arrange(DatetimeUTC, .by_group=TRUE)%>%
+  tibble::rowid_to_column("rowid")
+m_boars<-boars %>%
+  filter(Sex=="m")%>%
+  group_by(TierID)%>%
+  arrange(DatetimeUTC, .by_group=TRUE)%>%
+  tibble::rowid_to_column("rowid")
+
+rm(boars, boars_sex)
+
+# Deterrence data
+det_loc<-schreck_locations
+det_a<-schreck_agenda
+
+# joining the deterrence locations and the deterrence agenda
+deterrence<- inner_join(det_a, det_loc, by="id")
+deterrence<-st_as_sf(deterrence, coords=c("lon", "lat"), crs=4326, remove=FALSE)
+det_CH<-st_transform(deterrence, 2056)
+rm(deterrence, det_loc, det_a)
+```
+
+The deterrence locations are buffered with a 500 m buffer. To determine which boars came into contact with the deterrence locations a spatial join is done to connect the buffers with the boars. The joined data is then filtered by the activity of the deterrence noise.
+```{r }
+# create different buffers around deterrence locations
+det_buffer<-st_buffer(det_CH, 500)
+#det_buffer_250<-st_buffer(det_CH, 250)
+#det_buffer_100<-st_buffer(det_CH, 100)
+#ggplot()+
+ # geom_sf(data=det_buffer, fill="grey", alpha=0.4)+
+  #geom_sf(data=det_buffer_250,fill="blue", alpha=0.3)+
+#  geom_sf(data=det_buffer_100, fill="green", alpha=0.3)+
+ # coord_sf(datum=2056)+
+  #xlim(2560000, 2580000)+
+#  ylim(1200000, 1220000)
+```
+
+
+```{r }
+# join
+#f_join_100<-st_join(f_boars, det_buffer_100, left=FALSE)
+f_join_500<-st_join(f_boars, det_buffer, left=FALSE)
+#m_join_100<-st_join(m_boars, det_buffer_100, left=FALSE)
+m_join_500<-st_join(m_boars, det_buffer,left=FALSE)
+
+
+# check if deterrence was active during the encounter
+#f_active_500<-f_join_500 %>%
+ # group_by(TierName) %>%
+ # mutate(active=DatetimeUTC %within%interval(ymd(datum_on),ymd(datum_off))) %>%
+#  filter(active==TRUE)%>%
+ # distinct()
+f_active<-f_join_500 %>%
+  mutate(active=DatetimeUTC %within%interval((ymd(datum_on)+hours(-12)),
+                                             (ymd(datum_off)+hours(12)))) %>%
+  filter(active==TRUE)%>%
+  distinct()
+#m_active_500<-m_join_500 %>%
+ # group_by(TierName) %>%
+  #mutate(active=DatetimeUTC %within%interval(ymd(datum_on),ymd(datum_off))) %>%
+#  filter(active==TRUE)%>%
+ # distinct()
+m_active<-m_join_500 %>%
+  mutate(active=DatetimeUTC %within%interval((ymd(datum_on)+hours(-12)),
+                                             (ymd(datum_off)+hours(12)))) %>%
+  filter(active==TRUE)%>%
+  distinct()
+
+# removing points with consecutive rowids' to avoid counting the same encounter several times
+f_unique<-f_active %>%
+  mutate(id_diff=abs(rowid-lag(rowid, default = 46))) %>%
+  filter(id_diff>46)
+m_unique<-m_active %>%
+  mutate(id_diff=abs(rowid-lag(rowid, default = 46))) %>%
+  filter(id_diff>46)#?????!!!!!!!!!!!!!!!!!!!!
+
+## ID_diff >48 is based on the idea, that, in a later step, all those IDs get selected that are within a 12h time-window of this one ID (that encounter) if IDs are still in there that are too close together they are going to be selected as separate encounters --> it might not perfectly reflect the 6h before and 6h after an encounter, but it is a compromise that helps to avoid having seemingly different encounters despite the wild boar not even having left the buffer-zone in the first place 
+rm(f_join_500, m_join_500)
+```
+because certain buffers are spatially intersecting with each other, while the deterrence is also active at the same time, some boar tracking-points are twice in the data --> solved via `distinct`
+however --> what I am interested in, is how a certain animal reacts after encountering a deterrence noise --> therefore such double/triple entries are not that concerning --> rather it is going to be complicated in general to define a time-window in which I define certain movement/behavior patterns after an animal encounters the deterrence noise --> filtering in the original boar_f/ boar_m dataset for those encounter points and see what happens in the consecutive steps 
+To get en overview of how the wild boars behave, the one hour before and after the encounter with the "Wildschweinschreck" are selected.
+
+```{r }
+#Function to filter for those points that are within a given time window and belong to a certain animal
+inInterval<-function(boardata, timewindow, animalID){
+  filter(boardata, DatetimeRound %within% timewindow,
+         TierID==animalID)
+}
+```
+
+
+```{r }
+# preparing the encounter data
+f_timewindows<-f_unique %>%
+  mutate(DatetimeRound=round_date(DatetimeUTC, "15 minutes"),
+         Timewindow=interval(DatetimeRound+hours(-6), DatetimeRound+hours(6))) %>%
+  distinct()
+
+m_timewindows<-m_unique %>%
+  mutate(DatetimeRound=round_date(DatetimeUTC, "15 minutes"),
+         Timewindow=interval(DatetimeRound+hours(-6), DatetimeRound+hours(6))) %>%
+  distinct()
+
+# prepare the boars data
+f_boars<-mutate(f_boars, DatetimeRound=round_date(DatetimeUTC, "15 minutes"))
+m_boars<-mutate(m_boars, DatetimeRound=round_date(DatetimeUTC, "15 minutes"))
+```
+
+```{r }
+
+# filter out all the relevant rowids that reflect point 6h before and 6h after an encounter
+#females
+rowid<-numeric()
+meetings<-numeric()
+meet_id<-numeric()
+nr_rows<-c(1:nrow(f_timewindows))
+for (i in nr_rows){
+  match=inInterval(f_boars, f_timewindows$Timewindow[i], f_timewindows$TierID[i])
+  match=distinct(match)
+  rowid=c(rowid, match$rowid)
+  len=nrow(match)
+  meetings=c(meetings,len)
+  meet_id=c(meet_id,rep(i, times=meetings[i]))
+}
+#filter for all relevant data points from the females dataset
+matches<-as.data.frame(rowid)
+matches<-cbind(matches, meet_id)
+f_relevant<-matches %>%
+  inner_join(f_boars, by="rowid") %>%
+  distinct() %>%
+  st_as_sf(crs=2056) %>%
+  select(rowid, meet_id, DatetimeRound, geometry, E, N) %>% 
+  group_by(meet_id)
+```
+
+```{r }
+# males
+rowid<-numeric()
+meetings<-numeric()
+meet_id<-numeric()
+nr_rows<-c(1:nrow(m_timewindows))
+for (i in nr_rows){
+  match=inInterval(m_boars, m_timewindows$Timewindow[i], m_timewindows$TierID[i])
+  match=distinct(match)
+  rowid=c(rowid, match$rowid)
+  len=nrow(match)
+  meetings=c(meetings,len)
+  meet_id=c(meet_id,rep(i, times=meetings[i]))
+}
+# filter all relevant data points from the females dataset
+matches<-as.data.frame(rowid)
+matches<-cbind(matches, meet_id)
+m_relevant<-matches %>%
+  inner_join(m_boars, by="rowid") %>%
+  distinct() %>%
+  st_as_sf(crs=2056) %>%
+  select(rowid, meet_id, DatetimeRound, geometry, E, N) %>%
+  group_by(meet_id)
+
+
+rm(meet_id,meetings, nr_rows,i,len, matches, match, rowid, f_timewindows,m_timewindows)
+```
+
+```{r }
+# join the encounters once again with features of the deterrence
+
+f_rel<-f_relevant %>%
+  st_drop_geometry()%>%
+  select(rowid, meet_id)
+
+m_rel<-m_relevant %>%
+  st_drop_geometry()%>%
+  select(rowid, meet_id)
+
+
+# prepare deterrence features
+f_det<-f_unique %>%
+  st_drop_geometry() %>%
+  select(rowid, id, modus, lautstaerke, intervall, ausrichtung_min,
+         ausrichtung_max, phase, kultur, installationshohe, zaun, jagddruck)
+
+m_det<-m_unique %>%
+  st_drop_geometry() %>%
+  select(rowid, id, modus, lautstaerke, intervall, ausrichtung_min,
+         ausrichtung_max, phase, kultur, installationshohe, zaun, jagddruck)
+
+# the join itself - but oh, what a surprise, sf objects and simple dfs can't be joined
+
+f_deterrence<-inner_join(f_rel, f_det, by="rowid")
+m_deterrence<-inner_join(m_rel, m_det, by="rowid")
+
+```
+
+
+```{r }
+# finally prepare for the join of the relevant points with the available deterrence data
+f_rel<-f_relevant %>%
+  st_drop_geometry() %>%
+  select(rowid, meet_id, DatetimeRound, E, N)
+m_rel<-m_relevant %>%
+  st_drop_geometry() %>%
+  select(rowid, meet_id, DatetimeRound, E, N)
+
+
+f_joined<-left_join(f_rel, f_deterrence, by="meet_id")
+m_joined<-left_join(m_rel, m_deterrence, by="meet_id")
+
+f_encounters<- st_as_sf(f_joined, coords=c("E","N"), crs=2056, remove=FALSE)
+m_encounters<- st_as_sf(m_joined, coords=c("E","N"), crs=2056, remove=FALSE)
+
+rm(f_rel, m_rel, f_det, m_det,f_deterrence, m_deterrence, f_joined, m_joined, f_relevant,m_relevant)
+```
+
+```{r, include=FALSE}
+# The data should now theoretically be ready for some movement pattern analysis
+#I need to find stuff that I can compare (speed, flight distance,...). But first - let's check the data first.
+
+length(unique(f_encounters$rowid.x))==nrow(f_encounters)
+nrow(f_encounters)/length(unique(f_encounters$meet_id)) 
+# 12h should technically (with the 15min. sampling interval) result in 48 points
+length(unique(m_encounters$rowid.x))==nrow(m_encounters)
+nrow(m_encounters)/length(unique(m_encounters$meet_id))
+
+```
+
+```{r }
+# getting an overview
+#plotting all movements of female wild boars within a 12h window of an encounter with a deterrence
+
+f_encounters_buffer<-ggplot()+
+  geom_sf(data=det_buffer, fill="grey", alpha=0.4)+
+  geom_sf(data=f_encounters, aes(colour=meet_id), size=0.4)+
+  geom_path(data=f_encounters, aes(E, N), color="grey", alpha=0.5)+
+  coord_sf(datum=2056)+
+  xlim(2568000, 2575000)+
+  ylim(1202000, 1208000)+
+  labs(title="All movements of female wild boars \n that came within a 500m radius of an \n active deterrence location")
+
+
+m_encounters_buffer<-ggplot()+
+  geom_sf(data=det_buffer, fill="grey", alpha=0.4)+
+  geom_sf(data=m_encounters, aes(color = meet_id), size=0.4)+
+  geom_path(data=m_encounters, aes(E, N), color="grey", alpha=0.5)+
+  coord_sf(datum=2056)+
+  xlim(2568000, 2575000)+
+  ylim(1202000, 1208000)+
+  labs(title="All movements of male wild boars \n that came within a 500m radius of an \n active deterrence location")
+
+f_encounters_buffer
+```
+
+```{r }
+# deriving movement parameters
+f_encounters<- f_encounters %>%
+  group_by(meet_id) %>%
+  mutate(timelag = as.numeric(difftime(lead(DatetimeRound),DatetimeRound, units = "secs")),
+         steplength=sqrt((E-lead(E,1))^2+(N-lead(N,1))^2),
+         speed=steplength/timelag)
+
+m_encounters<- m_encounters %>%
+  group_by(meet_id) %>%
+  mutate(timelag = as.numeric(difftime(lead(DatetimeRound),DatetimeRound, units = "secs")),
+         steplength=sqrt((E-lead(E,1))^2+(N-lead(N,1))^2),
+         speed=steplength/timelag)
+```
+
+
+```{r }
+# Selection of the rows within 1h after the encounter
+f_1h<- f_encounters %>%
+  filter(rowid.x== rowid.y | rowid.x== rowid.y+1 | 
+           rowid.x== rowid.y+2 | rowid.x== rowid.y+3) %>%
+  group_by(meet_id) %>%
+  mutate(encounter= "after")
+m_1h<- m_encounters %>%
+  filter(rowid.x== rowid.y | rowid.x== rowid.y+1 | 
+           rowid.x== rowid.y+2 | rowid.x== rowid.y+3) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "after")
+
+# selection of the rows 1h before the encounter
+f_1h_sub<- f_encounters %>%
+  filter(rowid.x== rowid.y-1 | rowid.x== rowid.y-2 | 
+           rowid.x== rowid.y-3 | rowid.x== rowid.y-4) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "before")
+m_1h_sub<- m_encounters %>%
+  filter(rowid.x== rowid.y-1 | rowid.x== rowid.y-2 | 
+           rowid.x== rowid.y-3 | rowid.x== rowid.y-4) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "before")
+
+# just in case
+f_1h_encounters<- rbind(f_1h, f_1h_sub)
+f_1h_encounters<- arrange(f_1h_encounters, rowid.x) 
+m_1h_encounters<- rbind(m_1h, m_1h_sub)
+m_1h_encounters<- arrange(m_1h_encounters, rowid.x)
+
+m_encounters_1h<-ggplot()+
+  geom_sf(data=det_buffer, fill="grey", alpha=0.4)+
+  geom_sf(data=m_1h_encounters, aes(colour=encounter), size=1)+
+  geom_path(data=m_1h_encounters, aes(E, N), color="grey", alpha=0.5)+
+  coord_sf(datum=2056)+
+  xlim(2568000, 2575000)+
+  ylim(1202000, 1208000)
+
+m_encounters_1h
+```
+
+
 
 
 ## Results
