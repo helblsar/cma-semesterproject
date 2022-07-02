@@ -271,7 +271,7 @@ I need to find stuff that I can compare (speed, flight distance,...). But first 
 ```{r, include=FALSE}
 length(unique(f_encounters$rowid.x))==nrow(f_encounters)
 nrow(f_encounters)/length(unique(f_encounters$meet_id)) 
-# 12h should technically (with the 15min. sampling interval) result in 48 points
+# 12h should technically (with the 15min. sampling interval) result in 48 points, but since sampling is only every few hours during the day, it's only logical as I selected by "within time interval" and not +/- a certain number of ids'
 length(unique(m_encounters$rowid.x))==nrow(m_encounters)
 nrow(m_encounters)/length(unique(m_encounters$meet_id))
 
@@ -282,23 +282,30 @@ nrow(m_encounters)/length(unique(m_encounters$meet_id))
 ```{r }
 # getting an overview
 #plotting all movements of female wild boars within a 12h window of an encounter with a deterrence
+f_buffer<-filter(det_buffer, id %in% unique(f_encounters$id))
+m_buffer<- filter(det_buffer, id %in% unique(m_encounters$id))
 
 f_encounters_buffer<-ggplot()+
-  geom_sf(data=det_buffer, fill="grey", alpha=0.4)+
+  geom_sf(data=f_buffer, fill="grey", alpha=.4, color="grey")+
   geom_sf(data=f_encounters, aes(colour=meet_id), size=0.4)+
   geom_path(data=f_encounters, aes(E, N), color="grey", alpha=0.5)+
+  #facet_wrap(~meet_id)+
+  theme(legend.position = "none")+
   coord_sf(datum=2056)+
   xlim(2568000, 2575000)+
   ylim(1202000, 1208000)
+f_encounters_buffer  
 
 m_encounters_buffer<-ggplot()+
-  geom_sf(data=det_buffer, fill="grey", alpha=0.4)+
+  geom_sf(data=m_buffer, fill="grey", alpha=0.4, color="grey")+
   geom_path(data=m_encounters, aes(E, N), color="grey", alpha=0.5)+
   geom_sf(data=m_encounters, aes(color=meet_id),size=0.5)+
+  #facet_wrap(~meet_id)+
+  theme(legend.position = "none")+
   coord_sf(datum=2056)+
   xlim(2568000, 2575000)+
   ylim(1202000, 1208000)
-
+m_encounters_buffer
 ```
 
 ```{r }
@@ -343,8 +350,7 @@ m_1h<- m_encounters %>%
 
 # selection of the rows 1h before the encounter
 f_1h_sub<- f_encounters %>%
-  filter(rowid.x== rowid.y-1 | rowid.x== rowid.y-2 | 
-           rowid.x== rowid.y-3 | rowid.x== rowid.y-4) %>%
+  filter(rowid.x %in% c(rowid.y-1, rowid.y-2, rowid.y-3, rowid.y-4)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "before")
 m_1h_sub<- m_encounters %>%
@@ -353,11 +359,24 @@ m_1h_sub<- m_encounters %>%
   group_by(meet_id)%>%
   mutate(encounter= "before")
 
-# just in case
-f_1h_encounters<- rbind(f_1h, f_1h_sub)
-f_1h_encounters<- arrange(f_1h_encounters, rowid.x) 
-m_1h_encounters<- rbind(m_1h, m_1h_sub)
-m_1h_encounters<- arrange(m_1h_encounters, rowid.x)
+
+# selection of the 6h after the encounter (because of different sampling intervals during the day it's not exactly 6h, but close enough (hopefully))
+f_6h<- f_encounters %>%
+  filter(rowid.x %in% c(rowid.y, rowid.y+1, rowid.y+2, rowid.y+3, rowid.y+4,
+                        rowid.y+5, rowid.y+6, rowid.y+7, rowid.y+8,
+                        rowid.y+9, rowid.y+10, rowid.y+11, rowid.y+12,
+                        rowid.y+13, rowid.y+14, rowid.y+15, rowid.y+16,
+                        rowid.y+17, rowid.y+18, rowid.y+19, rowid.y+20,
+                        rowid.y+21, rowid.y+22, rowid.y+23, rowid.y+24)) %>%
+  group_by(meet_id)
+m_6h<- m_encounters %>%
+  filter(rowid.x %in% c(rowid.y, rowid.y+1, rowid.y+2, rowid.y+3, rowid.y+4,
+                        rowid.y+5, rowid.y+6, rowid.y+7, rowid.y+8,
+                        rowid.y+9, rowid.y+10, rowid.y+11, rowid.y+12,
+                        rowid.y+13, rowid.y+14, rowid.y+15, rowid.y+16,
+                        rowid.y+17, rowid.y+18, rowid.y+19, rowid.y+20,
+                        rowid.y+21, rowid.y+22, rowid.y+23, rowid.y+24)) %>%
+  group_by(meet_id)
 
 ```
 ```{r eval=FALSE}
@@ -381,83 +400,9 @@ m_active_csv <- m_active %>%
 det_buffer_csv <- det_buffer %>%
   st_drop_geometry() %>%
   write.csv("C:/Users/sarah/OneDrive - ZHAW/ACLS/Track_Module/project/Project-template-master/Project-template-master/det_buffer.csv", row.names = FALSE)
-
-f_1h_encounters_csv <- f_1h_encounters %>%
-  st_drop_geometry() %>%
-  write.csv("C:/Users/sarah/OneDrive - ZHAW/ACLS/Track_Module/project/Project-template-master/Project-template-master/f_1h_encounters.csv", row.names = FALSE)
-m_1h_encounters_csv <- m_1h_encounters %>%
-  st_drop_geometry() %>%
-  write.csv("C:/Users/sarah/OneDrive - ZHAW/ACLS/Track_Module/project/Project-template-master/Project-template-master/m_1h_encounters.csv", row.names = FALSE)
-
-```
-```{r }
-# how about plotting out all encounters...
-encounter_plot <- function (in_data, nr) {
-  encounter_nr <- in_data %>%
-    group_by(meet_id, encounter) %>%
-    filter(meet_id == nr)
-  bufferid<-(encounter_nr$id[1])
-  buffer<- filter(det_buffer, id==bufferid)
-  nr_plot <-ggplot()+
-    geom_sf(data=buffer, fill="grey", alpha=0.7)+
-    geom_sf(data=encounter_nr, aes(colour=encounter), shape=2)+
-    geom_path(data=encounter_nr, aes(E, N), color="grey")+
-    coord_sf(datum=2056)
-  return(nr_plot)
-}
-
-
-
-# let's see the first 5 encounters of each female and male wild boars
-#f_plot1<- encounter_plot(f_1h_encounters, 1)
-#f_plot2<- encounter_plot(f_1h_encounters, 2)
-#f_plot3<- encounter_plot(f_1h_encounters, 3)
-#f_plot4<- encounter_plot(f_1h_encounters, 4)
-#f_plot5<- encounter_plot(f_1h_encounters, 5)
-
-#m_plot1<- encounter_plot(m_1h_encounters, 1)
-#m_plot2<- encounter_plot(m_1h_encounters, 2)
-#m_plot3<- encounter_plot(m_1h_encounters, 3)
-#m_plot4<- encounter_plot(m_1h_encounters, 4)
-#m_plot5<- encounter_plot(m_1h_encounters, 5)
- 
-
 ```
 
 
-```{r eval=FALSE, include=FALSE}
-# speed within the 12h around the encounter by year
-# MAYBE THIS WHOLE IDEA IS SHIT
-# MAYBE YEAR SHOULD BE SPLIT UP INTO MONTHS (THE SPIKES ARE EXTREM) -> and maybe the entire idea for such a plot is idiotic 
-
-
-f_speed_14<-f_encounters %>%
-  filter(year(DatetimeRound)==2014)%>%
-  ggplot(aes(x=DatetimeRound, y=speed, color=meet_id))+
-  geom_line()
-f_speed_15<-f_encounters %>%
-  filter(year(DatetimeRound)==2015)%>%
-  ggplot(aes(x=DatetimeRound, y=speed, color=meet_id))+
-  geom_line()
-f_speed_16<-f_encounters %>%
-  filter(year(DatetimeRound)==2016)%>%
-  ggplot(aes(x=DatetimeRound, y=speed, color=meet_id))+
-  geom_line()
-
-
-m_speed_14<-m_encounters %>%
-  filter(year(DatetimeRound)==2014)%>%
-  ggplot(aes(x=DatetimeRound, y=speed, color=meet_id))+
-  geom_line()
-m_speed_15<-m_encounters %>%
-  filter(year(DatetimeRound)==2015)%>%
-  ggplot(aes(x=DatetimeRound, y=speed, color=meet_id))+
-  geom_line()
-m_speed_16<-m_encounters %>%
-  filter(year(DatetimeRound)==2016)%>%
-  ggplot(aes(x=DatetimeRound, y=speed, color=meet_id))+
-  geom_line()
-```
 
 
 # Statistics
@@ -607,9 +552,57 @@ m_dist_vol<- m_1h_dist %>%
   geom_boxplot(aes(x=lautstaerke, y=dist, group=lautstaerke, fill=as.factor(lautstaerke)))
 ```
 
+Comparison of trajectories from the same deterrence location
+
+```{r }
 
 
+ggplot()+
+  geom_sf(data=f_buffer, fill="grey", alpha=.4, color="grey")+
+  geom_sf(data=f_1h, aes(color=as.factor(meet_id)), size=.7, shape=1)+
+  facet_wrap(~id) +
+  theme(legend.position = "none")+
+  coord_sf(datum=2056)
 
+
+ggplot()+
+  geom_sf(data=m_buffer, fill="grey", alpha=.4, color="grey")+
+  geom_sf(data=m_encounters, aes(color=as.factor(meet_id)), size=.7, shape=1)+
+  facet_wrap(~id) +
+  theme(legend.position = "none")+
+  coord_sf(datum=2056)
+
+# why tf are there soo many encounter in the female side? 
+```
+
+```{r }
+# turning these dataframes into dataframes with separate traectories beginning at the same buffer
+f_6<-f_6h %>%
+  st_drop_geometry()%>%
+  mutate(Datetime_int=as.integer(DatetimeRound)) %>%
+  select(E, N, Datetime_int, meet_id, id) %>%
+  ungroup()
+m_6<-m_6h %>%
+  st_drop_geometry()%>%
+  mutate(Datetime_int=as.integer(DatetimeRound)) %>%
+  select(E, N, Datetime_int, meet_id, id) %>%
+  ungroup()
+f_split<-split(f_6, f_6$id)
+m_split<-split(m_6, m_6$id)
+
+unique(m_split[[1]]$meet_id)
+
+df_to_traj <- function(df, traj){
+  df %>%
+    filter(meet_id == traj) %>%
+    select(E, N, Datetime_int) %>%
+    as.matrix()
+}
+
+b1_meet1 <- df_to_traj(m_split[[1]], 1)
+
+
+```
 
 
 
