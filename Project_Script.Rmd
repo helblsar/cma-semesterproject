@@ -379,28 +379,6 @@ m_6h<- m_encounters %>%
   group_by(meet_id)
 
 ```
-```{r eval=FALSE}
-# converting the f/m_encounter DFs to csv files to load them anytime (also: det_buffer, f/m_active, and f/m_unique)
-
-f_encounters_csv <- f_encounters %>%
-  st_drop_geometry() %>%
-  write.csv("C:/Users/sarah/OneDrive - ZHAW/ACLS/Track_Module/project/Project-template-master/Project-template-master/f_encounters.csv", row.names = FALSE)
-
-m_encounters_csv <- m_encounters %>%
-  st_drop_geometry() %>%
-  write.csv("C:/Users/sarah/OneDrive - ZHAW/ACLS/Track_Module/project/Project-template-master/Project-template-master/m_encounters.csv", row.names = FALSE)
-
-f_active_csv <- f_active %>%
-  st_drop_geometry() %>%
-  write.csv("C:/Users/sarah/OneDrive - ZHAW/ACLS/Track_Module/project/Project-template-master/Project-template-master/f_active.csv", row.names = FALSE)
-m_active_csv <- m_active %>%
-  st_drop_geometry() %>%
-  write.csv("C:/Users/sarah/OneDrive - ZHAW/ACLS/Track_Module/project/Project-template-master/Project-template-master/m_active.csv", row.names = FALSE)
-
-det_buffer_csv <- det_buffer %>%
-  st_drop_geometry() %>%
-  write.csv("C:/Users/sarah/OneDrive - ZHAW/ACLS/Track_Module/project/Project-template-master/Project-template-master/det_buffer.csv", row.names = FALSE)
-```
 
 
 
@@ -591,8 +569,20 @@ m_6<-m_6h %>%
 unique(f_6$id)
 unique(m_6$id)
 
-f_split<-split(f_6, f_6$id) #"WSS_2014_04" "WSS_2015_01" "WSS_2014_05" "WSS_2016_01" "WSS_2015_03" "WSS_2015_04" "WSS_2016_06" "WSS_2016_13"
-m_split<-split(m_6, m_6$id)
+f_split<-split(f_6, f_6$id)
+#"WSS_2014_04" "WSS_2015_01" "WSS_2014_05" "WSS_2016_01" "WSS_2015_03" "WSS_2015_04" "WSS_2016_06" "WSS_2016_13"
+f_1<-f_split[[1]]
+f_2<-f_split[[2]]
+f_3<-f_split[[3]]
+f_4<-f_split[[4]]
+f_5<-f_split[[5]]
+f_6<-f_split[[6]]
+f_7<-f_split[[7]]
+f_8<-f_split[[8]]
+
+
+
+
 
 library(purrr)
 library(SimilarityMeasures)
@@ -600,13 +590,15 @@ library(SimilarityMeasures)
 df_to_traj <- function(df, traj){
   df %>%
     filter(meet_id == traj) %>%
-    select(E, N, Datetime_int) %>%
+    select(E, N) %>%
     as.matrix()
 }
 
 WSS_2014_04_f<-map(1:length(unique(f_split[[1]]$meet_id)), function(x){
   df_to_traj(f_split[[1]],x)
 })
+
+
 WSS_2015_01_f<-map(1:length(unique(f_split[[2]]$meet_id)), function(x){
   df_to_traj(f_split[[2]],x)
 })
@@ -628,6 +620,11 @@ WSS_2016_06_f<-map(1:length(unique(f_split[[7]]$meet_id)), function(x){
 WSS_2016_13_f<-map(1:length(unique(f_split[[8]]$meet_id)), function(x){
   df_to_traj(f_split[[8]],x)
 })
+
+
+
+m_split<-split(m_6, m_6$id)
+
 
 
 WSS_2014_04_m<-map(1:length(unique(m_split[[1]]$meet_id)), function(x){
