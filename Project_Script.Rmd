@@ -587,10 +587,15 @@ m_6<-m_6h %>%
   mutate(Datetime_int=as.integer(DatetimeRound)) %>%
   select(E, N, Datetime_int, meet_id, id) %>%
   ungroup()
-f_split<-split(f_6, f_6$id)
+
+unique(f_6$id)
+unique(m_6$id)
+
+f_split<-split(f_6, f_6$id) #"WSS_2014_04" "WSS_2015_01" "WSS_2014_05" "WSS_2016_01" "WSS_2015_03" "WSS_2015_04" "WSS_2016_06" "WSS_2016_13"
 m_split<-split(m_6, m_6$id)
 
-unique(m_split[[1]]$meet_id)
+library(purrr)
+library(SimilarityMeasures)
 
 df_to_traj <- function(df, traj){
   df %>%
@@ -599,8 +604,47 @@ df_to_traj <- function(df, traj){
     as.matrix()
 }
 
-b1_meet1 <- df_to_traj(m_split[[1]], 1)
+WSS_2014_04_f<-map(1:length(unique(f_split[[1]]$meet_id)), function(x){
+  df_to_traj(f_split[[1]],x)
+})
+WSS_2015_01_f<-map(1:length(unique(f_split[[2]]$meet_id)), function(x){
+  df_to_traj(f_split[[2]],x)
+})
+WSS_2014_05_f<-map(1:length(unique(f_split[[3]]$meet_id)), function(x){
+  df_to_traj(f_split[[3]],x)
+})
+WSS_2016_01_f<-map(1:length(unique(f_split[[4]]$meet_id)), function(x){
+  df_to_traj(f_split[[4]],x)
+})
+WSS_2015_03_f<-map(1:length(unique(f_split[[5]]$meet_id)), function(x){
+  df_to_traj(f_split[[5]],x)
+})
+WSS_2015_04_f<-map(1:length(unique(f_split[[6]]$meet_id)), function(x){
+  df_to_traj(f_split[[6]],x)
+})
+WSS_2016_06_f<-map(1:length(unique(f_split[[7]]$meet_id)), function(x){
+  df_to_traj(f_split[[7]],x)
+})
+WSS_2016_13_f<-map(1:length(unique(f_split[[8]]$meet_id)), function(x){
+  df_to_traj(f_split[[8]],x)
+})
 
+
+WSS_2014_04_m<-map(1:length(unique(m_split[[1]]$meet_id)), function(x){
+  df_to_traj(m_split[[1]],x)
+})
+WSS_2014_05_m<-map(1:length(unique(m_split[[2]]$meet_id)), function(x){
+  df_to_traj(m_split[[2]],x)
+})
+WSS_2016_05_m<-map(1:length(unique(m_split[[3]]$meet_id)), function(x){
+  df_to_traj(m_split[[3]],x)
+})
+WSS_2015_01_m<-map(1:length(unique(m_split[[4]]$meet_id)), function(x){
+  df_to_traj(m_split[[4]],x)
+})
+WSS_2016_06_m<-map(1:length(unique(m_split[[5]]$meet_id)), function(x){
+  df_to_traj(m_split[[5]],x)
+})
 
 ```
 
