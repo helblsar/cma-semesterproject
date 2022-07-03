@@ -1,8 +1,6 @@
 ---
 title:  A comparison of the behaviour of female and male wild boars after an encounter with the Wildschweinschreck
 author: Sarah Helbling
-output: html_document
-
 ---
 
 
@@ -13,30 +11,48 @@ output: html_document
 
 ## Introduction
 
+Wild boar ( _Sus scrofa_ L.) populations in wide parts of Europe, including Switzerland, have sharply increased in the past decades ( _Goulding, 2003; Maissei et al., 2015_). The main reasons for this increase is the high availability of food in combination with the high reproductive rate of wild boars ( _Geisser, 2005_) . Wild boars often feed in maize and wheat fields ( _Henning, 1998_) causing a lot of damage to the farmers. There are several methods to keep wild boars away from the field, e.g., increasing hunting pressure, electrical fences and acoustic deterrence ( _Breton, 1994; Mazzoni della Stella et al., 1995; Suter & Eyholzer, 2010;Vassant, 1997_). 
 
+In a study conducted between 2013 and 2017,  all the above mentioned methods were tested and compared, to determine how agricultural land and nature reserves can best be protected from damage by wild boars ( _Suter, Stoller, Sigrist, 2018_). The authors concluded, that acoustic deterrence is especially suitable directly after the sowing of crops and shortly before maize and wheat are ripe (german: Milchreife). In combination with a hightend hunting pressure, acoustic deterrence is even more effective, while electrical fences only keep wild boars away from field when built and maintained well.
 
+The study mainly focused on a comparison of the deterrence methods, but ignored the social structure of wild boars. The social structure of wild boars might have an influence on the behaviour of female versus male wild boars, insofar as that adult males mostly live isolated, while females and young boars live together in herds ( _Bon et al., 1986; Rossell et al., 2004_). Considering this social structure, this project aims to compare female and male wild boars and their behaviour after an encounter with an acoustic deterrence.
 
 
 ## Material and Methods
+
+The data for this project was collected in the context of the [Evalutation eiens akustischen Wildschwein-Vergrämungssystems](https://www.zhaw.ch/de/forschung/forschungsdatenbank/projektdetail/projektid/842/). Further information about this study can be found in the [final report](https://www.zhaw.ch/storage/hochschule/medien/bildmaterial/Schlussbericht_Wildschweinschreck.pdf) (language: German) of the study and the [R package](https://computationalmovementanalysis.github.io/ComputationalMovementAnalysisData/index.html) of the data. 
+
+In the years 2013-2017 46 fields and 39 wild boars were studied. The acoustic deterrence system fundamentally consisted of two loudspeakers that played species-specific warning noises of different wild boar individuals. Non-species-specific warning noises such as human steps, human voices and sounds of gun shots were added to further deter wild boars ( _Suter, Stoller & Sigrist, 2018_). 
+
+### Material
+
+For the analysis the following data sets of the R package Computational Movement Analysis Data were used: 
+-wildboar data: 
+  -wildschwein_BE;
+  -wildschwein_metadata.
+-wildschwein schreck data: 
+  -schreck_agenda;
+  -schreck_locations.
+  
+### Methods
+
+In order to determine the encounter of a wild boar with a acoustic deterrence location (detloc), all wild boar GPS points within a 500 m radius of the detloc were selected, as well as all points within a time window of one hour before and six hours after the initial encounter. 
+
+The movement parameter "distance" or steplength was created using the Euclidean Distance between points, while speed is the distance divided by the timelag in between location fixes. As the sampling regime included a location fix every 15 min. between 17:00 and 05:00, and a location fix every three hours (08:00, 11:00, 14:00, 17:00) during the day.
 
 ```{r, echo = FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 ``` 
 
-
-### Data
-```{r Libraries, include=FALSE}
+```{r, include = FALSE}
 library(ComputationalMovementAnalysisData)
 library(dplyr)
 library(lubridate)
 library(sf)
 library(ggplot2)
 ```
-The Computational Movement Analysis Data contains: 
-- wildboar data: wildschwein_BE, wildschwein_metadata, wildschwein_overlap_temp
-- wildschwein schreck data: schreck_agenda, schreck_locations
 
-```{r RawData}
+```{r }
 # Metadata
 meta_d<-wildschwein_metadata
 boars_sex<-meta_d%>%
@@ -70,49 +86,29 @@ det_a<-schreck_agenda
 deterrence<- inner_join(det_a, det_loc, by="id")
 deterrence<-st_as_sf(deterrence, coords=c("lon", "lat"), crs=4326, remove=FALSE)
 det_CH<-st_transform(deterrence, 2056)
+det_CH<-select(det_CH, -kultur, -phase, -zaun, -jagddruck)
 rm(deterrence, det_loc, det_a)
 ```
-
-The deterrence locations are buffered with a 500 m buffer. To determine which boars came into contact with the deterrence locations a spatial join is done to connect the buffers with the boars. The joined data is then filtered by the activity of the deterrence noise.
 ```{r }
 # create different buffers around deterrence locations
 det_buffer<-st_buffer(det_CH, 500)
-#det_buffer_250<-st_buffer(det_CH, 250)
-#det_buffer_100<-st_buffer(det_CH, 100)
-#ggplot()+
- # geom_sf(data=det_buffer, fill="grey", alpha=0.4)+
-  #geom_sf(data=det_buffer_250,fill="blue", alpha=0.3)+
-#  geom_sf(data=det_buffer_100, fill="green", alpha=0.3)+
- # coord_sf(datum=2056)+
-  #xlim(2560000, 2580000)+
-#  ylim(1200000, 1220000)
+
 ```
 
 
 ```{r }
 # join
-#f_join_100<-st_join(f_boars, det_buffer_100, left=FALSE)
 f_join_500<-st_join(f_boars, det_buffer, left=FALSE)
-#m_join_100<-st_join(m_boars, det_buffer_100, left=FALSE)
 m_join_500<-st_join(m_boars, det_buffer,left=FALSE)
 
 
 # check if deterrence was active during the encounter
-#f_active_500<-f_join_500 %>%
- # group_by(TierName) %>%
- # mutate(active=DatetimeUTC %within%interval(ymd(datum_on),ymd(datum_off))) %>%
-#  filter(active==TRUE)%>%
- # distinct()
 f_active<-f_join_500 %>%
   mutate(active=DatetimeUTC %within%interval((ymd(datum_on)+hours(-12)),
                                              (ymd(datum_off)+hours(12)))) %>%
   filter(active==TRUE)%>%
   distinct()
-#m_active_500<-m_join_500 %>%
- # group_by(TierName) %>%
-  #mutate(active=DatetimeUTC %within%interval(ymd(datum_on),ymd(datum_off))) %>%
-#  filter(active==TRUE)%>%
- # distinct()
+
 m_active<-m_join_500 %>%
   mutate(active=DatetimeUTC %within%interval((ymd(datum_on)+hours(-12)),
                                              (ymd(datum_off)+hours(12)))) %>%
@@ -127,12 +123,9 @@ m_unique<-m_active %>%
   mutate(id_diff=abs(rowid-lag(rowid, default = 46))) %>%
   filter(id_diff>46)#?????!!!!!!!!!!!!!!!!!!!!
 
-## ID_diff >48 is based on the idea, that, in a later step, all those IDs get selected that are within a 12h time-window of this one ID (that encounter) if IDs are still in there that are too close together they are going to be selected as separate encounters --> it might not perfectly reflect the 6h before and 6h after an encounter, but it is a compromise that helps to avoid having seemingly different encounters despite the wild boar not even having left the buffer-zone in the first place 
-rm(f_join_500, m_join_500)
+## ID_diff >46 is based on the idea, that, in a later step, all those IDs get selected that are within a 12h time-window of this one ID (that encounter) if IDs are still in there that are too close together they are going to be selected as separate encounters --> it might not perfectly reflect the 6h before and 6h after an encounter, but it is a compromise that helps to avoid having seemingly different encounters despite the wild boar not even having left the buffer-zone in the first place 
+rm(f_join_500, m_join_500, f_active, m_active)
 ```
-because certain buffers are spatially intersecting with each other, while the deterrence is also active at the same time, some boar tracking-points are twice in the data --> solved via `distinct`
-however --> what I am interested in, is how a certain animal reacts after encountering a deterrence noise --> therefore such double/triple entries are not that concerning --> rather it is going to be complicated in general to define a time-window in which I define certain movement/behavior patterns after an animal encounters the deterrence noise --> filtering in the original boar_f/ boar_m dataset for those encounter points and see what happens in the consecutive steps 
-To get en overview of how the wild boars behave, the one hour before and after the encounter with the "Wildschweinschreck" are selected.
 
 ```{r }
 #Function to filter for those points that are within a given time window and belong to a certain animal
@@ -231,14 +224,13 @@ m_rel<-m_relevant %>%
 f_det<-f_unique %>%
   st_drop_geometry() %>%
   select(rowid, id, modus, lautstaerke, intervall, ausrichtung_min,
-         ausrichtung_max, phase, kultur, installationshohe, zaun, jagddruck)
+         ausrichtung_max)
 
 m_det<-m_unique %>%
   st_drop_geometry() %>%
   select(rowid, id, modus, lautstaerke, intervall, ausrichtung_min,
-         ausrichtung_max, phase, kultur, installationshohe, zaun, jagddruck)
+         ausrichtung_max)
 
-# the join itself - but oh, what a surprise, sf objects and simple dfs can't be joined
 
 f_deterrence<-inner_join(f_rel, f_det, by="rowid")
 m_deterrence<-inner_join(m_rel, m_det, by="rowid")
@@ -264,14 +256,10 @@ m_encounters<- st_as_sf(m_joined, coords=c("E","N"), crs=2056, remove=FALSE)
 
 rm(f_rel, m_rel, f_det, m_det,f_deterrence, m_deterrence, f_joined, m_joined, f_relevant,m_relevant)
 ```
-
 ```{r, include=FALSE}
-# The data should now theoretically be ready for some movement pattern analysis
-#I need to find stuff that I can compare (speed, flight distance,...). But first - let's check the data first.
-
 length(unique(f_encounters$rowid.x))==nrow(f_encounters)
 nrow(f_encounters)/length(unique(f_encounters$meet_id)) 
-# 12h should technically (with the 15min. sampling interval) result in 48 points
+# 12h should technically (with the 15min. sampling interval) result in 48 points, but since sampling is only every few hours during the day, it's only logical as I selected by "within time interval" and not +/- a certain number of ids'
 length(unique(m_encounters$rowid.x))==nrow(m_encounters)
 nrow(m_encounters)/length(unique(m_encounters$meet_id))
 
@@ -280,27 +268,32 @@ nrow(m_encounters)/length(unique(m_encounters$meet_id))
 ```{r }
 # getting an overview
 #plotting all movements of female wild boars within a 12h window of an encounter with a deterrence
+f_buffer<-filter(det_buffer, id %in% unique(f_encounters$id))
+m_buffer<- filter(det_buffer, id %in% unique(m_encounters$id))
 
 f_encounters_buffer<-ggplot()+
-  geom_sf(data=det_buffer, fill="grey", alpha=0.4)+
+  geom_sf(data=f_buffer, fill="grey", alpha=.4, color="grey")+
   geom_sf(data=f_encounters, aes(colour=meet_id), size=0.4)+
   geom_path(data=f_encounters, aes(E, N), color="grey", alpha=0.5)+
+  #facet_wrap(~meet_id)+
+  theme(legend.position = "none")+
   coord_sf(datum=2056)+
   xlim(2568000, 2575000)+
-  ylim(1202000, 1208000)+
-  labs(title="All movements of female wild boars \n that came within a 500m radius of an \n active deterrence location")
+  ylim(1202000, 1208000)
 
+```
 
+```{r }
 m_encounters_buffer<-ggplot()+
-  geom_sf(data=det_buffer, fill="grey", alpha=0.4)+
-  geom_sf(data=m_encounters, aes(color = meet_id), size=0.4)+
+  geom_sf(data=m_buffer, fill="grey", alpha=0.4, color="grey")+
   geom_path(data=m_encounters, aes(E, N), color="grey", alpha=0.5)+
+  geom_sf(data=m_encounters, aes(color=meet_id),size=0.5)+
+  #facet_wrap(~meet_id)+
+  theme(legend.position = "none")+
   coord_sf(datum=2056)+
   xlim(2568000, 2575000)+
-  ylim(1202000, 1208000)+
-  labs(title="All movements of male wild boars \n that came within a 500m radius of an \n active deterrence location")
+  ylim(1202000, 1208000)
 
-f_encounters_buffer
 ```
 
 ```{r }
@@ -320,45 +313,78 @@ m_encounters<- m_encounters %>%
 
 
 ```{r }
-# Selection of the rows within 1h after the encounter
+# Selection of the rows within 1h,2h, 3h, 4h, 5h, and 6h after the encounter
 f_1h<- f_encounters %>%
   filter(rowid.x== rowid.y | rowid.x== rowid.y+1 | 
            rowid.x== rowid.y+2 | rowid.x== rowid.y+3) %>%
   group_by(meet_id) %>%
-  mutate(encounter= "after")
+  mutate(encounter= "1hlater")
+f_2h<- f_encounters %>%
+  filter(rowid.x %in% c(rowid.y+4, rowid.y+5, rowid.y+6, rowid.y+7)) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "2hlater")
+f_3h<- f_encounters %>%
+  filter(rowid.x %in% c(rowid.y+8, rowid.y+9, rowid.y+10, rowid.y+11)) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "3hlater")
+f_4h<- f_encounters %>%
+  filter(rowid.x %in% c(rowid.y+12, rowid.y+13, rowid.y+14, rowid.y+15)) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "4hlater")
+f_5h<- f_encounters %>%
+  filter(rowid.x %in% c(rowid.y+16, rowid.y+17, rowid.y+18, rowid.y+19)) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "5hlater")
+f_6h<- f_encounters %>%
+  filter(rowid.x %in% c(rowid.y+20, rowid.y+21, rowid.y+22, rowid.y+23)) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "6hlater")
+
 m_1h<- m_encounters %>%
   filter(rowid.x== rowid.y | rowid.x== rowid.y+1 | 
            rowid.x== rowid.y+2 | rowid.x== rowid.y+3) %>%
   group_by(meet_id)%>%
-  mutate(encounter= "after")
+  mutate(encounter= "1hlater")
+m_2h<- m_encounters %>%
+  filter(rowid.x %in% c(rowid.y+4, rowid.y+5, rowid.y+6, rowid.y+7)) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "2hlater")
+m_3h<- m_encounters %>%
+  filter(rowid.x %in% c(rowid.y+8, rowid.y+9, rowid.y+10, rowid.y+11)) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "3hlater")
+m_4h<- m_encounters %>%
+  filter(rowid.x %in% c(rowid.y+12, rowid.y+13, rowid.y+14, rowid.y+15)) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "4hlater")
+m_5h<- m_encounters %>%
+  filter(rowid.x %in% c(rowid.y+16, rowid.y+17, rowid.y+18, rowid.y+19)) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "5hlater")
+m_6h<- m_encounters %>%
+  filter(rowid.x %in% c(rowid.y+20, rowid.y+21, rowid.y+22, rowid.y+23)) %>%
+  group_by(meet_id)%>%
+  mutate(encounter= "6hlater")
 
 # selection of the rows 1h before the encounter
 f_1h_sub<- f_encounters %>%
-  filter(rowid.x== rowid.y-1 | rowid.x== rowid.y-2 | 
-           rowid.x== rowid.y-3 | rowid.x== rowid.y-4) %>%
+  filter(rowid.x %in% c(rowid.y-1, rowid.y-2, rowid.y-3, rowid.y-4)) %>%
   group_by(meet_id)%>%
-  mutate(encounter= "before")
+  mutate(encounter= "1hbefore")
 m_1h_sub<- m_encounters %>%
   filter(rowid.x== rowid.y-1 | rowid.x== rowid.y-2 | 
            rowid.x== rowid.y-3 | rowid.x== rowid.y-4) %>%
   group_by(meet_id)%>%
-  mutate(encounter= "before")
+  mutate(encounter= "1hbefore")
 
-# just in case
-f_1h_encounters<- rbind(f_1h, f_1h_sub)
-f_1h_encounters<- arrange(f_1h_encounters, rowid.x) 
-m_1h_encounters<- rbind(m_1h, m_1h_sub)
-m_1h_encounters<- arrange(m_1h_encounters, rowid.x)
 
-m_encounters_1h<-ggplot()+
-  geom_sf(data=det_buffer, fill="grey", alpha=0.4)+
-  geom_sf(data=m_1h_encounters, aes(colour=encounter), size=1)+
-  geom_path(data=m_1h_encounters, aes(E, N), color="grey", alpha=0.5)+
-  coord_sf(datum=2056)+
-  xlim(2568000, 2575000)+
-  ylim(1202000, 1208000)
+# selection of the 6h after the encounter (because of different sampling intervals during the day it's not exactly 6h, but close enough (hopefully))
+f_6h<- rbind(f_1h, f_2h, f_3h, f_4h, f_5h, f_6h) %>%
+  group_by(meet_id)
+m_6h<- rbind(m_1h, m_2h, m_3h, m_4h, m_5h, m_6h) %>%
+  group_by(meet_id)
 
-m_encounters_1h
+rm(f_2h, f_3h, f_4h, f_5h, m_2h, m_3h, m_4h, m_5h)
 ```
 
 
@@ -367,7 +393,227 @@ m_encounters_1h
 ## Results
 
 
+### Comparison speeds of female and male wild boars within 1h of the encounter
+
+H0: The difference in the speeds of female and male wild boars have no systematic reason but occurred at random.
+H1: The difference in the speeds of female and male wild boars have a systematic reason.
+```{r }
+#comparisons of male/ female: speed 1h after encounter, distance 1h after encounter, distance by volume, distance by modus, (if possible) similarities of trajectories coming from the same deterrence locations (I don't have the forest/field edges, but possibly they run straight to the next cover which means their trajectories would be really similar) 
+
+# testing for normality
+shapiro.test(f_1h$speed)
+shapiro.test(m_1h$speed)
+# since f_speeds data not normal, independent --> wilcox
+wilcox.test(f_1h$speed, m_1h$speed)
+# H0 TRUE: speeds f/m not systematically different
+
+f_1<-f_1h %>%
+  st_drop_geometry() %>%
+  ungroup() %>%
+  mutate(sex="female")%>%
+  select(speed, sex)
+m_1<-m_1h %>%
+  st_drop_geometry() %>% 
+  ungroup() %>%
+  mutate(sex="male") %>%
+  select(speed, sex)
+comparison<- rbind(f_1, m_1)
+comparison<-comparison %>%
+  group_by(sex)
+
+ggplot(data=comparison, aes(sex, speed, fill=sex))+
+  geom_boxplot()+
+  labs(title="Comparison of speed 1h after the encounter with a deterrence")+
+  ylab("speed [m/s]")
+
+```
+
+
+```{r }
+#Does volume, interval or modus have an influence on speed 1h after encounter
+
+#(volume is the sound intensity, as a percentage of the max value (120dB in 1 m distance))
+# since we know the data does not have normal distribution -->
+#females
+kruskal.test(speed~modus, data=f_1h)#p-value =0.6423
+kruskal.test(speed~lautstaerke, data=f_1h) # p-value= 0.005955 speed differs significantly with volume
+kruskal.test(speed~intervall, data=f_1h) # p-value = 0.06607
+
+#males
+kruskal.test(speed~modus, data=m_1h) #p-value = 0.8446
+kruskal.test(speed~lautstaerke, data=m_1h) # p-value = 0.02788 speed differs significantly with volume
+# kruskal.test(speed~intervall, data=m_1h) # error - all encounters happened when intervall=15min.
+
+# FIX THE COLORS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# boxplots speed-modus
+f_speed_modus<- f_1h %>%
+  group_by(modus) %>%
+  ggplot() + 
+  geom_boxplot(aes(x=modus, y=speed, group=modus, fill=modus)) +
+  ylab("speed [m/s]")
+
+m_speed_modus<- m_1h %>%
+  group_by(modus)%>%
+  ggplot()+
+  geom_boxplot(aes(x=modus, y=speed, group=modus, fill=modus)) +
+  ylab("speed [m/s]")
+
+# boxplots speed-lautstaerke
+f_speed_vol<- f_1h %>%
+  group_by(lautstaerke) %>%
+  ggplot() + 
+  geom_boxplot(aes(x=lautstaerke, y=speed, group=lautstaerke, fill=as.factor(lautstaerke))) +
+  ylab("speed [m/s]")
+
+m_speed_vol<- m_1h %>%
+  group_by(lautstaerke)%>%
+  ggplot()+
+  geom_boxplot(aes(x=lautstaerke, y=speed, group=lautstaerke, fill=as.factor(lautstaerke)))+
+  ylab("speed [m/s]")
+
+
+f_speed_modus
+m_speed_modus
+f_speed_vol
+m_speed_vol
+```
+
+
+Comparison of distance 1h after encounter
+```{r }
+f_1h_dist<-f_1h %>%
+  st_drop_geometry() %>%
+  group_by(meet_id, lautstaerke, modus, intervall)%>%
+  summarise(dist=sum(steplength, na.rm=T))
+
+m_1h_dist<-m_1h %>%
+  st_drop_geometry() %>%
+  group_by(meet_id, lautstaerke, modus)%>%
+  summarise(dist=sum(steplength, na.rm=T))
+
+
+# testing for normality
+shapiro.test(f_1h_dist$dist) #not normal
+shapiro.test(m_1h_dist$dist) # normal (how, but whatever)
+# since f_speeds data not normal, independent --> wilcox
+wilcox.test(f_1h_dist$dist, m_1h_dist$dist)
+# H0 TRUE: distance f/m not systematically different
+
+f_1_dist<-f_1h_dist %>%
+  ungroup() %>%
+  mutate(sex="female")%>%
+  select(dist, sex)
+m_1_dist<-m_1h_dist %>%
+  ungroup() %>%
+  mutate(sex="male") %>%
+  select(dist, sex)
+comparison_dist<- rbind(f_1_dist, m_1_dist)
+comparison_dist<-comparison_dist %>%
+  group_by(sex)
+
+ggplot(data=comparison_dist, aes(sex, dist, fill=sex))+
+  geom_boxplot()+
+  labs(title="Comparison of flight distance within one hour \n of the encounter with a deterrence")+
+  ylab("distance [m]")
+```
+Does volume or modus have an influence on distance 1h after encounter
+```{r }
+# since we know the data does not have normal distribution -->
+#females
+kruskal.test(dist~modus, data=f_1h_dist)#p-value = 0.398
+kruskal.test(dist~lautstaerke, data=f_1h_dist) # p-value= 0.3389
+kruskal.test(dist~intervall, data=f_1h_dist) # p-value = 0.3214
+
+#males
+kruskal.test(dist~modus, data=m_1h_dist) #p-value = 0.6948
+kruskal.test(dist~lautstaerke, data=m_1h_dist) # p-value = 0.03573 distance differs significantly with volume
+
+# BEWARE OF THE DIFFERENT COLORS - FIX THIS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# boxplots dist-modus
+f_dist_modus<- f_1h_dist %>%
+  group_by(modus) %>%
+  ggplot() + 
+  geom_boxplot(aes(x=modus, y=dist, group=modus, fill=modus))
+
+m_dist_modus<- m_1h_dist %>%
+  group_by(modus)%>%
+  ggplot()+
+  geom_boxplot(aes(x=modus, y=dist, group=modus, fill=modus))
+
+# boxplots dist-lautstaerke
+f_dist_vol<- f_1h_dist %>%
+  group_by(lautstaerke) %>%
+  ggplot() + 
+  geom_boxplot(aes(x=lautstaerke, y=dist, group=lautstaerke, fill=as.factor(lautstaerke)))
+
+m_dist_vol<- m_1h_dist %>%
+  group_by(lautstaerke)%>%
+  ggplot()+
+  geom_boxplot(aes(x=lautstaerke, y=dist, group=lautstaerke, fill=as.factor(lautstaerke)))
+
+f_dist_modus
+m_dist_modus
+f_dist_vol
+m_dist_vol
+```
+Comparing distances of each hour (1-6) after the encounter
+```{r }
+f_dist<-f_6h %>%
+  st_drop_geometry() %>%
+  group_by(encounter, meet_id)%>%
+  summarise(dist=sum(steplength, na.rm=T))
+
+
+kruskal.test(dist~encounter, data=f_dist) # p-value = 2.641e-12 - the distances each hour are significantly different
+
+f_dist_encounter<- f_dist %>%
+  group_by(encounter) %>%
+  ggplot() + 
+  geom_boxplot(aes(x=encounter, y=dist, group=encounter, fill=encounter))
+
+f_dist_encounter
+
+m_dist<-m_6h %>%
+  st_drop_geometry() %>%
+  group_by(encounter, meet_id)%>%
+  summarise(dist=sum(steplength, na.rm=T))
+
+
+kruskal.test(dist~encounter, data=m_dist) # p-value = 0.001761 - the distances each hour are significantly different
+
+m_dist_encounter<- m_dist %>%
+  group_by(encounter) %>%
+  ggplot() + 
+  geom_boxplot(aes(x=encounter, y=dist, group=encounter, fill=encounter))
+
+m_dist_encounter
+```
+
+
+Comparison of trajectories from the same deterrence location
+
+```{r }
+
+
+ggplot()+
+  geom_sf(data=f_buffer, fill="grey", alpha=.4, color="grey")+
+  geom_sf(data=f_1h, aes(color=as.factor(meet_id)), size=.7, shape=1)+
+  facet_wrap(~id) +
+  theme(legend.position = "none")+
+  coord_sf(datum=2056)
+
+
+ggplot()+
+  geom_sf(data=m_buffer, fill="grey", alpha=.4, color="grey")+
+  geom_sf(data=m_encounters, aes(color=as.factor(meet_id)), size=.7, shape=1)+
+  facet_wrap(~id) +
+  theme(legend.position = "none")+
+  coord_sf(datum=2056)
+
+# why tf are there soo many encounter in the female side? 
+```
+
 
 ## Discussion
 
-
+  
