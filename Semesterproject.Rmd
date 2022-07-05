@@ -88,45 +88,576 @@ deterrence<-st_as_sf(deterrence, coords=c("lon", "lat"), crs=4326, remove=FALSE)
 det_CH<-st_transform(deterrence, 2056)
 det_CH<-select(det_CH, -kultur, -phase, -zaun, -jagddruck)
 rm(deterrence, det_loc, det_a)
+
+# colors
+col_6<-c("#762a83", "#af8dc3", "#e7d4e8", "#d9f0d3", "#7fbf7b", "#1b7837")
 ```
-```{r }
+```{r, warning=FALSE}
 # create different buffers around deterrence locations
 det_buffer<-st_buffer(det_CH, 500)
+# and now I present to you the most human-error prone thing ever (trigonometry is hard... and creating functions too)
+poly<- function(a, b, c, d){
+  poly_1 = matrix(
+    c(
+      a[1], a[2],
+      b[1], b[2],
+      c[1], c[2],
+      d[1], d[2],
+      a[1], a[2]
+    ), ncol=2, byrow=TRUE
+  ) %>%
+    list() %>%
+    st_polygon
+  poly_1<-st_sfc(poly_1, crs=2056)
+}
 
+r<-1000
+geom<-det_CH$geometry
+min<-det_CH$ausrichtung_min
+max<-det_CH$ausrichtung_max
+rad <- function (x){
+  rad= x*pi/180
+  return(rad)
+}
+# Nr1 - 80, 280
+a<-as.numeric(geom[[1]])
+b<-a+c(r*sin(rad(min[1])), r*cos(rad(min[1]))) # maybe I'll do this everywhere, but...
+c<-a+c(0, r)
+d<-a+c(-r*cos(rad(max[1]-270)), r*sin(rad(max[1]-270)))
+# create polygon
+buf_1<-st_difference(det_buffer[1,], poly(a, b, c, d))
+
+# Nr2 same as det_1
+buf_2<-buf_1
+
+# Nr3 - 45, 225
+a<-as.numeric(geom[[3]])
+b<-a+c(r*sin(rad(min[3])), r*cos(rad(min[3])))
+c<-a+c(r,-r)
+d<-a+c(-r*sin(rad(max[3]-180)), -r*cos(rad(max[3]-180)))
+# create polygon
+buf_3<-st_intersection(det_buffer[3,], poly(a, b, c, d))
+#sector_buffer<- rbind(sector_buffer, st_intersection(det_buffer[3,], poly(a, b, c, d))) - theoretically possible...
+
+# Nr4 - 30, 180 
+a<-as.numeric(geom[[4]])
+b<-a+c(r*sin(rad(30)), r*cos(rad(30)))
+c<-a+c(r,-r)
+d<-a+c(0,-r)
+# create polygon
+buf_4<-st_intersection(det_buffer[4,], poly(a, b, c, d))
+
+# Nr5 - same as Nr4 
+buf_5<-buf_4
+
+# Nr6  - 200, 280
+a<-as.numeric(geom[[6]])
+b<-a+c(-r*sin(rad(200-180)), -r*cos(200-180))
+c<-a+c(-r, 0)
+d<-a+c(-r*cos(rad(280-270)), r*sin(rad(280-270)))
+# create polygon
+buf_6<-st_intersection(det_buffer[6,], poly(a, b, c, d))
+
+# Nr7 - same as Nr6
+a<-as.numeric(geom[[7]])
+b<-a+c(-r*sin(rad(200-180)), -r*cos(200-180))
+c<-a+c(-r, 0)
+d<-a+c(-r*cos(rad(280-270)), r*sin(rad(280-270)))
+# create polygon
+buf_7<-st_intersection(det_buffer[6,], poly(a, b, c, d))
+
+# Nr8 - 160,330
+a<-as.numeric(geom[[8]])
+b<-a+c(r*cos(rad(160-90)), -r*sin(rad(160-90)))
+c<-a+c(-r,-r)
+d<-a+c(-r*cos(rad(330-270)), r*sin(rad(330-270)))
+# create polygon
+buf_8<-st_intersection(det_buffer[8,], poly(a, b, c, d))
+
+# Nr9 - same as Nr8
+buf_9<-buf_8
+
+# Nr10 - 60, 315
+a<-as.numeric(geom[[10]])
+b<-a+c(r*sin(rad(60)), r*cos(rad(60)))
+c<-a+c(0,r)
+d<-a+c(-r*cos(rad(315-270)), r*sin(rad(315-270)))
+# create polygon
+buf_10<-st_difference(det_buffer[10,], poly(a, b, c, d))
+
+# Nr11 - same as Nr10
+buf_11<-buf_10
+
+# Nr12 - 20, 180 
+a<-as.numeric(geom[[12]])
+b<-a+c(r*sin(rad(20)), r*cos(rad(20)))
+c<-a+c(r,-r)
+d<-a+c(0, -r)
+# create polygon
+buf_12<-st_intersection(det_buffer[12,], poly(a, b, c, d))
+
+# Nr 13 - 40, 270
+a<-as.numeric(geom[[13]])
+b<-a+c(r*sin(rad(40)), r*cos(rad(40)))
+c<-a+c(0, r)
+d<-a+c(-r,0)
+# create polygon
+buf_13<-st_difference(det_buffer[13,], poly(a, b, c, d))
+
+# Nr 14 - 90, 250
+a<-as.numeric(geom[[14]])
+b<-a+c(r,0)
+c<-a+c(0,-r)
+d<-a+c(-r*sin(rad(250-180)), -r*cos(rad(250-180)))
+# create polygon
+buf_14<-st_intersection(det_buffer[14,], poly(a, b, c, d))
+
+# Nr 15 - 250, 340
+a<-as.numeric(geom[[15]])
+b<-a+c(-r*sin(rad(250-180)), -r*cos(rad(250-180)))
+c<-a+c(-r, 0)
+d<-a+c(-r*cos(rad(340-270)), r*sin(rad(340-270)))
+# create polygon
+buf_15<-st_intersection(det_buffer[15,], poly(a, b, c, d))
+
+# Nr 16 - 140, 280
+a<-as.numeric(geom[[16]])
+b<-a+c(r*cos(rad(140-90)), -r*sin(rad(140-90)))
+c<-a+c(-r,-r)
+d<-a+c(-r*cos(rad(280-270)), r*sin(rad(280-270)))
+# create polygon
+buf_16<-st_intersection(det_buffer[16,], poly(a, b, c, d))
+
+#nr 17
+buf_17<-buf_16
+
+# Nr 18 - 0, 180
+a<-as.numeric(geom[[18]])
+b<-a+c(0,r)
+c<-a+c(r,0)
+d<-a+c(0,-r)
+# create polygon
+buf_18<-st_intersection(det_buffer[18,], poly(a, b, c, d))
+
+# Nr 19
+buf_19<-buf_18
+
+# Nr 20 - 140, 320
+a<-as.numeric(geom[[20]])
+b<-a+c(r*cos(rad(140-90)), -r*sin(rad(140-90)))
+c<-a+c(-r,-r)
+d<-a+c(-r*cos(rad(320-270)), r*sin(rad(320-270)))
+# create polygon
+buf_20<-st_intersection(det_buffer[20,], poly(a, b, c, d))
+
+# nr 21
+buf_21<-buf_20
+
+# Nr 22 - 200, 270
+a<-as.numeric(geom[[22]])
+b<-a+c(-r*sin(rad(200-180)), -r*cos(rad(200-180)))
+c<-a+c(-r,-r)
+d<-a+c(-r,0)
+# create polygon
+buf_22<-st_intersection(det_buffer[22,], poly(a, b, c, d))
+
+# Nr 23 - 130, 310
+a<-as.numeric(geom[[23]])
+b<-a+c(r*cos(rad(130-90)), -r*sin(rad(130-90)))
+c<-a+c(-r,-r)
+d<-a+c(-r*cos(rad(310-270)), r*sin(rad(310-270)))
+# create polygon
+buf_23<-st_intersection(det_buffer[23,], poly(a, b, c, d))
+
+# Nr. 24 - 170, 350
+a<-as.numeric(geom[[24]])
+b<-a+c(r*cos(rad(170-90)), -r*sin(rad(170-90)))
+c<-a+c(-r,-r)
+d<-a+c(-r*cos(rad(350-270)), r*sin(rad(350-270)))
+# create polygon
+buf_24<-st_intersection(det_buffer[24,], poly(a, b, c, d))
+
+# Nr 25 - 250, 90
+a<-as.numeric(geom[[25]])
+b<-a+c(r,0)
+c<-a+c(r,-r)
+d<-a+c(-r*sin(rad(250-180)), -r*cos(rad(250-180)))
+# create polygon
+buf_25<-st_difference(det_buffer[25,], poly(a, b, c, d))
+
+# Nr 26 
+buf_26<-buf_25
+
+# Nr 27  40, 220
+a<-as.numeric(geom[[27]])
+b<-a+c(r*sin(rad(40)), r*cos(rad(40)))
+c<-a+c(r, -r)
+d<-a+c(-r*sin(rad(220-180)), -r*cos(rad(220-180)))
+# create polygon
+buf_27<-st_intersection(det_buffer[27,], poly(a, b, c, d))
+
+# Nr 28 - 100, 280
+a<-as.numeric(geom[[28]])
+b<-a+c(r*cos(rad(100-90)), -r*sin(rad(100-90)))
+c<-a+c(0, -r)
+d<-a+c(-r*cos(rad(280-270)), r*sin(rad(280-270)))
+# create polygon
+buf_28<-st_intersection(det_buffer[28,], poly(a, b, c, d))
+
+# Nr 29 - 80, 260
+a<-as.numeric(geom[[29]])
+b<-a+c(r*sin(rad(80)), r*cos(rad(80)))
+c<-a+c(r,-r)
+d<-a+c(-r*sin(rad(260-180)), -r*cos(rad(260-180)))
+# create polygon
+buf_29<-st_intersection(det_buffer[29,], poly(a, b, c, d))
+
+# Nr 30
+buf_30<-buf_29
+
+#Nr 31 - 26, 260
+a<-as.numeric(geom[[31]])
+b<-a+c(r*sin(rad(26)), r*cos(rad(26)))
+c<-a+c(0, r)
+d<-a+c(-r*sin(rad(260-180)), -r*cos(rad(260-180)))
+# create polygon
+buf_31<-st_difference(det_buffer[31,], poly(a, b, c, d))
+
+# Nr 32 
+buf_32<-buf_31
+
+#Nr 33 - 60, 240
+a<-as.numeric(geom[[33]])
+b<-a+c(r*sin(rad(60)), r*cos(rad(60)))
+c<-a+c(r,-r)
+d<-a+c(-r*sin(rad(240-180)), -r*cos(rad(240-180)))
+# create polygon
+buf_33<-st_intersection(det_buffer[33,], poly(a, b, c, d))
+
+#Nr 34
+buf_34<-buf_33
+
+#Nr 35 - 44, 332
+a<-as.numeric(geom[[35]])
+b<-a+c(r*sin(rad(44)), r*cos(rad(44)))
+c<-a+c(0,r)
+d<-a+c(-r*cos(rad(332-270)), r*sin(rad(332-270)))
+# create polygon
+buf_35<-st_difference(det_buffer[35,], poly(a, b, c, d))
+
+# Nr 36 - 46, 214 
+a<-as.numeric(geom[[36]])
+b<-a+c(r*sin(rad(46)), r*cos(rad(46)))
+c<-a+c(r,-r)
+d<-a+c(-r*sin(rad(214-180)), -r*cos(rad(214-180)))
+# create polygon
+buf_36<-st_intersection(det_buffer[36,], poly(a, b, c, d))
+
+#Nr 37- 30, 210
+a<-as.numeric(geom[[37]])
+b<-a+c(r*sin(rad(30)), r*cos(rad(30)))
+c<-a+c(0,-r)
+d<-a+c(-r*sin(rad(210-180)),-r*cos(rad(210-180)))
+# create polygon
+buf_37<-st_intersection(det_buffer[37,], poly(a, b, c, d))
+
+# Nr 38 - 82, 320
+a<-as.numeric(geom[[38]])
+b<-a+c(r*sin(rad(82)), r*cos(rad(82)))
+c<-a+c(0,-r)
+d<-a+c(-r*cos(rad(320-270)), r*sin(rad(320-270)))
+# create polygon
+buf_38<-st_difference(det_buffer[38,], poly(a, b, c, d))
+
+# Nr 39 - 80, 180
+a<-as.numeric(geom[[39]])
+b<-a+c(r*sin(rad(80)), r*cos(rad(80)))
+c<-a+c(r,-r)
+d<-a+c(0,-r)
+# create polygon
+buf_39<-st_intersection(det_buffer[39,], poly(a, b, c, d))
+
+# Nr 40 - 60, 300 
+a<-as.numeric(geom[[40]])
+b<-a+c(r*sin(rad(60)), r*cos(rad(60)))
+c<-a+c(0,r)
+d<-a+c(-r*cos(rad(300-270)), r*sin(rad(300-270)))
+# create polygon
+buf_40<-st_difference(det_buffer[40,], poly(a, b, c, d))
+
+# Nr 41 - 45, 225
+a<-as.numeric(geom[[41]])
+b<-a+c(r*sin(rad(45)), r*cos(rad(45)))
+c<-a+c(r, -r)
+d<-a+c(-r*sin(rad(225-180)), -r*cos(rad(225-180)))
+# create polygon
+buf_41<-st_intersection(det_buffer[41,], poly(a, b, c, d))
+
+# Nr 42 - 100, 225
+a<-as.numeric(geom[[42]])
+b<-a+c(r*cos(rad(100-90)), -r*sin(rad(100-90)))
+c<-a+c(0,-r)
+d<-a+c(-r*sin(rad(225-180)), -r*cos(rad(225-180)))
+# create polygon
+poly_42<-poly(a, b, c, d)
+buf_42<-st_intersection(det_buffer[ 42,], poly(a, b, c, d))
+
+# Nr 43 - 180, 270
+a<-as.numeric(geom[[43]])
+b<-a+c(0,-r)
+c<-a+c(-r,-r)
+d<-a+c(-r,0)
+# create polygon
+buf_43<-st_intersection(det_buffer[ 43,], poly(a, b, c, d))
+
+# Nr 44 - 170, 260
+a<-as.numeric(geom[[44]])
+b<-a+c(r*cos(rad(170-90)), -r*sin(rad(170-90)))
+c<-a+c(-r,-r)
+d<-a+c(-r*sin(rad(260-180)), -r*cos(rad(260-180)))
+# create polygon
+buf_44<-st_intersection(det_buffer[44,], poly(a, b, c, d))
+
+# Nr 45 - 60, 240
+a<-as.numeric(geom[[45]])
+b<-a+c(r*sin(rad(60)), r*cos(rad(60)))
+c<-a+c(r,-r)
+d<-a+c(-r*sin(rad(240-180)), -r*cos(rad(240-180)))
+# create polygon
+buf_45<-st_intersection(det_buffer[45,], poly(a, b, c, d))
+
+# Nr 46 - 260, 330
+a<-as.numeric(geom[[46]])
+b<-a+c(-r*sin(rad(260-180)), -r*cos(rad(260-180)))
+c<-a+c(-r, 0)
+d<-a+c(-r*cos(rad(330-270)), r*sin(rad(330-270)))
+# create polygon
+buf_46<-st_intersection(det_buffer[46,], poly(a, b, c, d))
+
+# Nr 47 - 190, 350 
+a<-as.numeric(geom[[47]])
+b<-a+c(-r*sin(rad(190-180)), -r*cos(rad(190-180)))
+c<-a+c(-r,0)
+d<-a+c(-r*cos(rad(350-270)), r*sin(rad(350-270)))
+# create polygon
+buf_47<-st_intersection(det_buffer[47,], poly(a, b, c, d))
+
+# Nr 48 - 180, 340
+a<-as.numeric(geom[[48]])
+b<-a+c(0,-r)
+c<-a+c(-r,0)
+d<-a+c(-r*cos(rad(340-270)), r*sin(rad( 340-270)))
+# create polygon
+buf_48<-st_intersection(det_buffer[48,], poly(a, b, c, d))
+
+# Nr 49 - 20, 230
+a<-as.numeric(geom[[49]])
+b<-a+c(r*sin(rad(20)), r*cos(rad(20)))
+c<-a+c(-r,r)
+d<-a+c(-r*sin(rad(230-180)), -r*cos(rad(230-180)))
+# create polygon
+buf_49<-st_difference(det_buffer[49,], poly(a, b, c, d))
+
+# Nr 50 - 50, 230
+a<-as.numeric(geom[[50]])
+b<-a+c(r*sin(rad(50)), r*cos(rad(50)))
+c<-a+c(r,-r)
+d<-a+c(-r*sin(rad(230-180)), -r*cos(rad(230-180)))
+# create polygon
+buf_50<-st_intersection(det_buffer[50,], poly(a, b, c, d))
+
+# Nr 51 - 110, 190
+a<-as.numeric(geom[[51]])
+b<-a+c(r*cos(rad(110-90)), -r*sin(rad(110-90)))
+c<-a+c(0,-r)
+d<-a+c(-r*sin(rad(190-180)), -r*cos(rad(190-180)))
+# create polygon
+buf_51<-st_intersection(det_buffer[51,], poly(a, b, c, d))
+
+# Nr 52 - 30, 220
+a<-as.numeric(geom[[52]])
+b<-a+c(r*sin(rad(30)), r*cos(rad(30)))
+c<-a+c(-r, r)
+d<-a+c(-r*sin(rad(220-180)), -r*cos(rad(220-180)))
+# create polygon
+buf_52<-st_difference(det_buffer[52,], poly(a, b, c, d))
+
+# Nr 53 - 60, 240
+a<-as.numeric(geom[[53]])
+b<-a+c(r*sin(rad(60)), r*cos(rad(60)))
+c<-a+c(r, -r)
+d<-a+c(-r*sin(rad(240-180)), -r*cos(rad(240-180)))
+# create polygon
+buf_53<-st_intersection(det_buffer[53,], poly(a, b, c, d))
+
+# Nr 54 - 0, 180
+a<-as.numeric(geom[[54]])
+b<-a+c(0, r)
+c<-a+c(r,0)
+d<-a+c(0,-r)
+# create polygon
+buf_54<-st_intersection(det_buffer[54,], poly(a, b, c, d))
+
+# Nr 55 - 110, 280
+a<-as.numeric(geom[[55]])
+b<-a+c(r*cos(rad(110-90)), -r*sin(rad(110-90)))
+c<-a+c(-r, -r)
+d<-a+c(-r*cos(rad(280-270)), r*sin(rad(280-270)))
+# create polygon
+buf_55<-st_intersection(det_buffer[55,], poly(a, b, c, d))
+
+# Nr 56 - 160, 260
+a<-as.numeric(geom[[56]])
+b<-a+c(r*cos(rad(160-90)), -r*sin(rad(160-90)))
+c<-a+c(0, -r)
+d<-a+c(-r*sin(rad(260-180)), -r*cos(rad(260-180)))
+# create polygon
+buf_56<-st_intersection(det_buffer[56,], poly(a, b, c, d))
+
+# Nr 57 - 0, 250
+a<-as.numeric(geom[[57]])
+b<-a+c(0,r)
+c<-a+c(-r,r)
+d<-a+c(-r*sin(rad(250-180)), -r*cos(rad(250-180)))
+# create polygon
+buf_57<-st_difference(det_buffer[57,], poly(a, b, c, d))
+
+# Nr 58 - 0, 150
+a<-as.numeric(geom[[58]])
+b<-a+c(0, r)
+c<-a+c(r,0)
+d<-a+c(r*cos(rad(150-90)), -r*sin(rad(150-90)))
+# create polygon
+buf_58<-st_intersection(det_buffer[58,], poly(a, b, c, d))
+
+# Nr 59 - 260, 310
+a<-as.numeric(geom[[59]])
+b<-a+c(-r*sin(rad(260-180)), -r*cos(rad(260-180)))
+c<-a+c(-r,0)
+d<-a+c(-r*cos(rad(310-270)), r*sin(rad(310-270)))
+# create polygon
+buf_59<-st_intersection(det_buffer[59,], poly(a, b, c, d))
+
+# Nr 60 - 170, 270
+a<-as.numeric(geom[[60]])
+b<-a+c(r*cos(rad(170-90)), -r*sin(rad(170-90)))
+c<-a+c(0,-r)
+d<-a+c(-r, 0)
+# create polygon
+buf_60<-st_intersection(det_buffer[60,], poly(a, b, c, d))
+
+# Nr 61- 45, 315
+a<-as.numeric(geom[[61]])
+b<-a+c(r*sin(rad(45)), r*cos(rad(45)))
+c<-a+c(0,r)
+d<-a+c(-r*cos(rad(315-270)), r*sin(rad(315-270)))
+# create polygon
+buf_61<-st_difference(det_buffer[61,], poly(a, b, c, d))
+
+# Nr62 - 90, 315
+a<-as.numeric(geom[[62]])
+b<-a+c(r,0)
+c<-a+c(r,r)
+d<-a+c(-r*cos(rad(315-270)))
+# create polygon
+buf_62<-st_difference(det_buffer[62,], poly(a, b, c, d))
+
+# Nr 63 - 60, 240
+a<-as.numeric(geom[[63]])
+b<-a+c(r*sin(rad(60)), r*cos(rad(60)))
+c<-a+c(r,-r)
+d<-a+c(-r*sin(rad(240-180)), -r*cos(rad(240-180)))
+# create polygon
+buf_63<-st_intersection(det_buffer[63,], poly(a, b, c, d))
+
+# Nr 64 same as 63
+buf_64<-buf_63
+
+# Nr 65 - 0, 110
+a<-as.numeric(geom[[65]])
+b<-a+c(0, r)
+c<-a+c(r,0)
+d<-a+c(r*cos(rad(110-90)), -r*sin(rad(110-90)))
+# create polygon
+buf_65<-st_intersection(det_buffer[65,], poly(a, b, c, d))
+
+# Nr 66 - 90, 200
+a<-as.numeric(geom[[66]])
+b<-a+c(r,0)
+c<-a+c(r,-r)
+d<-a+c(-r*sin(rad(200-180)), -r*cos(rad(200-180)))
+# create polygon
+buf_66<-st_intersection(det_buffer[66,], poly(a, b, c, d))
+
+# Nr 67 - 150, 300
+a<-as.numeric(geom[[67]])
+b<-a+c(r*cos(rad(150-90)), -r*sin(rad(150-90)))
+c<-a+c(-r,-r)
+d<-a+c(-r*cos(rad(300-270)), r*cos(rad(300-270)))
+# create polygon
+buf_67<-st_intersection(det_buffer[67,], poly(a, b, c, d))
+
+# Nr 68 - 250, 340
+a<-as.numeric(geom[[68]])
+b<-a+c(-r*sin(rad(250-180)), -r*cos(rad(250-180)))
+c<-a+c(-r,0)
+d<-a+c(-r*cos(rad(340-270)), r*sin(rad(340-270)))
+# create polygon
+buf_68<-st_intersection(det_buffer[68,], poly(a, b, c, d))
+
+# Nr 69 - 50, 250
+a<-as.numeric(geom[[69]])
+b<-a+c(r*sin(rad(50)), r*cos(rad(50)))
+c<-a+c(-r, r)
+d<-a+c(-r*sin(rad(250-180)), -r*cos(rad(250-180)))
+# create polygon
+buf_69<-st_intersection(det_buffer[69,], poly(a, b, c, d))
+
+buf_sector<- rbind(buf_1, buf_2, buf_3, buf_4, buf_5, buf_6, buf_7, buf_8, buf_9, buf_10,
+                   buf_11, buf_12, buf_13, buf_14, buf_15, buf_16, buf_17, buf_18, buf_19, buf_20,
+                   buf_21, buf_22, buf_23, buf_24, buf_25, buf_26, buf_27, buf_28, buf_29, buf_30,
+                   buf_31, buf_32, buf_33, buf_34, buf_35, buf_36, buf_37, buf_38, buf_39, buf_40,
+                   buf_41, buf_42, buf_43, buf_44, buf_45, buf_46, buf_47, buf_48, buf_49, buf_50,
+                   buf_51, buf_52, buf_53, buf_54, buf_55, buf_56, buf_57, buf_58, buf_59, buf_60,
+                   buf_61, buf_62, buf_63, buf_64, buf_65, buf_66, buf_67, buf_68, buf_69)
+
+rm(buf_1, buf_2, buf_3, buf_4, buf_5, buf_6, buf_7, buf_8, buf_9, buf_10,
+                   buf_11, buf_12, buf_13, buf_14, buf_15, buf_16, buf_17, buf_18, buf_19, buf_20,
+                   buf_21, buf_22, buf_23, buf_24, buf_25, buf_26, buf_27, buf_28, buf_29, buf_30,
+                   buf_31, buf_32, buf_33, buf_34, buf_35, buf_36, buf_37, buf_38, buf_39, buf_40,
+                   buf_41, buf_42, buf_43, buf_44, buf_45, buf_46, buf_47, buf_48, buf_49, buf_50,
+                   buf_51, buf_52, buf_53, buf_54, buf_55, buf_56, buf_57, buf_58, buf_59, buf_60,
+                   buf_61, buf_62, buf_63, buf_64, buf_65, buf_66, buf_67, buf_68, buf_69, r, geom, min, max, a,b,c,d)
 ```
-
-
 ```{r }
 # join
-f_join_500<-st_join(f_boars, det_buffer, left=FALSE)
-m_join_500<-st_join(m_boars, det_buffer,left=FALSE)
-
+f_join_sector<-st_join(f_boars, buf_sector, left=FALSE)
+m_join_sector<-st_join(m_boars, buf_sector, left=FALSE)
 
 # check if deterrence was active during the encounter
-f_active<-f_join_500 %>%
+f_a<-f_join_sector %>%
   mutate(active=DatetimeUTC %within%interval((ymd(datum_on)+hours(-12)),
                                              (ymd(datum_off)+hours(12)))) %>%
   filter(active==TRUE)%>%
   distinct()
 
-m_active<-m_join_500 %>%
+m_a<-m_join_sector %>%
   mutate(active=DatetimeUTC %within%interval((ymd(datum_on)+hours(-12)),
                                              (ymd(datum_off)+hours(12)))) %>%
   filter(active==TRUE)%>%
   distinct()
 
 # removing points with consecutive rowids' to avoid counting the same encounter several times
-f_unique<-f_active %>%
+f_u<-f_a %>%
+  mutate(id_diff=abs(rowid-lag(rowid, default = 46))) %>%
+ filter(id_diff>46)
+m_u<-m_a %>%
   mutate(id_diff=abs(rowid-lag(rowid, default = 46))) %>%
   filter(id_diff>46)
-m_unique<-m_active %>%
-  mutate(id_diff=abs(rowid-lag(rowid, default = 46))) %>%
-  filter(id_diff>46)#?????!!!!!!!!!!!!!!!!!!!!
 
-## ID_diff >46 is based on the idea, that, in a later step, all those IDs get selected that are within a 12h time-window of this one ID (that encounter) if IDs are still in there that are too close together they are going to be selected as separate encounters --> it might not perfectly reflect the 6h before and 6h after an encounter, but it is a compromise that helps to avoid having seemingly different encounters despite the wild boar not even having left the buffer-zone in the first place 
-rm(f_join_500, m_join_500, f_active, m_active)
+## ID_diff >46 is based on the idea, that, in a later step, all those IDs get selected that are within a 12h time-window of this one ID (that encounter) if IDs are still in there that are too close together they are going to be selected as separate encounters --> it might not perfectly reflect the 6h before and 6h after an encounter, but it is a compromise that helps to avoid having seemingly different encounters despite the wild boar not even having left the buffer-zone in the first place
+rm( f_join_sector, m_join_sector, f_a, m_a)
 ```
-
 ```{r }
 #Function to filter for those points that are within a given time window and belong to a certain animal
 inInterval<-function(boardata, timewindow, animalID){
@@ -134,16 +665,14 @@ inInterval<-function(boardata, timewindow, animalID){
          TierID==animalID)
 }
 ```
-
-
 ```{r }
 # preparing the encounter data
-f_timewindows<-f_unique %>%
+f_timewindows<-f_u %>%
   mutate(DatetimeRound=round_date(DatetimeUTC, "15 minutes"),
          Timewindow=interval(DatetimeRound+hours(-6), DatetimeRound+hours(6))) %>%
   distinct()
 
-m_timewindows<-m_unique %>%
+m_timewindows<-m_u %>%
   mutate(DatetimeRound=round_date(DatetimeUTC, "15 minutes"),
          Timewindow=interval(DatetimeRound+hours(-6), DatetimeRound+hours(6))) %>%
   distinct()
@@ -152,7 +681,6 @@ m_timewindows<-m_unique %>%
 f_boars<-mutate(f_boars, DatetimeRound=round_date(DatetimeUTC, "15 minutes"))
 m_boars<-mutate(m_boars, DatetimeRound=round_date(DatetimeUTC, "15 minutes"))
 ```
-
 ```{r }
 
 # filter out all the relevant rowids that reflect point 6h before and 6h after an encounter
@@ -179,7 +707,6 @@ f_relevant<-matches %>%
   select(rowid, meet_id, DatetimeRound, geometry, E, N) %>% 
   group_by(meet_id)
 ```
-
 ```{r }
 # males
 rowid<-numeric()
@@ -207,7 +734,6 @@ m_relevant<-matches %>%
 
 rm(meet_id,meetings, nr_rows,i,len, matches, match, rowid, f_timewindows,m_timewindows)
 ```
-
 ```{r }
 # join the encounters once again with features of the deterrence
 
@@ -221,23 +747,19 @@ m_rel<-m_relevant %>%
 
 
 # prepare deterrence features
-f_det<-f_unique %>%
+f_det<-f_u %>%
   st_drop_geometry() %>%
-  select(rowid, id, modus, lautstaerke, intervall, ausrichtung_min,
-         ausrichtung_max)
+  select(rowid, TierName, id, modus, lautstaerke, intervall)
 
-m_det<-m_unique %>%
+m_det<-m_u %>%
   st_drop_geometry() %>%
-  select(rowid, id, modus, lautstaerke, intervall, ausrichtung_min,
-         ausrichtung_max)
+  select(rowid, TierName, id, modus, lautstaerke, intervall)
 
 
 f_deterrence<-inner_join(f_rel, f_det, by="rowid")
 m_deterrence<-inner_join(m_rel, m_det, by="rowid")
 
 ```
-
-
 ```{r }
 # finally prepare for the join of the relevant points with the available deterrence data
 f_rel<-f_relevant %>%
@@ -268,11 +790,11 @@ nrow(m_encounters)/length(unique(m_encounters$meet_id))
 ```{r }
 # getting an overview
 #plotting all movements of female wild boars within a 12h window of an encounter with a deterrence
-f_buffer<-filter(det_buffer, id %in% unique(f_encounters$id))
-m_buffer<- filter(det_buffer, id %in% unique(m_encounters$id))
+f_sector<-filter(buf_sector, id %in% unique(f_encounters$id))
+m_sector<-filter(buf_sector, id %in% unique(m_encounters$id))
 
 f_encounters_buffer<-ggplot()+
-  geom_sf(data=f_buffer, fill="grey", alpha=.4, color="grey")+
+  geom_sf(data=f_sector, fill="grey", alpha=.4, color="grey")+
   geom_sf(data=f_encounters, aes(colour=meet_id), size=0.4)+
   geom_path(data=f_encounters, aes(E, N), color="grey", alpha=0.5)+
   #facet_wrap(~meet_id)+
@@ -281,11 +803,12 @@ f_encounters_buffer<-ggplot()+
   xlim(2568000, 2575000)+
   ylim(1202000, 1208000)
 
+f_encounters_buffer
 ```
 
 ```{r }
 m_encounters_buffer<-ggplot()+
-  geom_sf(data=m_buffer, fill="grey", alpha=0.4, color="grey")+
+  geom_sf(data=m_sector, fill="grey", alpha=0.4, color="grey")+
   geom_path(data=m_encounters, aes(E, N), color="grey", alpha=0.5)+
   geom_sf(data=m_encounters, aes(color=meet_id),size=0.5)+
   #facet_wrap(~meet_id)+
@@ -293,7 +816,7 @@ m_encounters_buffer<-ggplot()+
   coord_sf(datum=2056)+
   xlim(2568000, 2575000)+
   ylim(1202000, 1208000)
-
+m_encounters_buffer
 ```
 
 ```{r }
@@ -311,67 +834,119 @@ m_encounters<- m_encounters %>%
          speed=steplength/timelag)
 ```
 
+Bounding box of all points of f/m_encounters
+   xmin    ymin    xmax    ymax 
+2568440 1202900 2574921 1207596 
+
+```{r }
+boden<-read_sf("C:/Users/sarah/OneDrive - ZHAW/ACLS/Track_Module/project/Project-template-master/Project-template-master/tlm_bodenbedeckung/TLM3D_bodenbedeckung.shx")
+boden<-boden %>%
+  select(objektart) %>%
+  st_transform(2056)
+
+
+umgebung<-st_as_sfc(st_bbox(rbind(f_encounters, m_encounters)))  # it is not perfect, but for the sake of this project probably close enough
+landwirtschaft<-st_difference(umgebung, st_combine(st_union(boden)))
+landwirtschaft <- landwirtschaft %>%
+  st_as_sf()%>%
+  mutate(objektart=1000) %>%
+  select(objektart)
+st_geometry(landwirtschaft)<-"geometry"
+
+# add the area that is possibly mainly agricultural land to the swissTLM3D Bodenbedeckung
+bodenbedeckung<-rbind(boden, landwirtschaft)
+
+# cbind the descriptions of the SWISS TLM3D catalogue
+objektart<-c(5,6,7,10,11,12,14, 1000)
+objektbesch_DE<-c("Fliessgewaesser", "Gebueschwald", "Lockergestein",
+                  "stehende Gewaesser", "Feuchtgebiet", "Wald",
+                  "Gehoelzflaechen", "Landwirtschaft")
+object_desc<-c("bodies of running water", "bush forest", "loose rock",
+               "bodies of stagnant water", "wetland", "forest", 
+               "woodland","agriculture")
+object_description<-as.data.frame(cbind(objektart, objektbesch_DE,
+                                        object_desc))
+
+# join descriptions and geometries of "bodenbedeckung swissTLM3D"
+bb_desc<-inner_join(bodenbedeckung, object_description, by="objektart")
+```
+The descriptions of the ground cover (swissTLM3D Bodenbedeckung) were taken from the __Objektkatalog__ ( __swisstopo, 2022__).
+```{r }
+
+st_crs(bb_desc)
+f_boden<-st_join(f_encounters, bb_desc)
+m_boden<-st_join(m_encounters, bb_desc)
+
+ggplot()+
+  geom_sf(data=m_sector)
+  geom_sf(data=m_boden)+
+  geom_path(data=m_boden, aes(E,N), color="grey", alpha=.5)+
+  theme_minimal()+
+  coord_sf(datum=2056)
+
+```
+
 
 ```{r }
 # Selection of the rows within 1h,2h, 3h, 4h, 5h, and 6h after the encounter
-f_1h<- f_encounters %>%
+f_1h<- f_boden %>%
   filter(rowid.x== rowid.y | rowid.x== rowid.y+1 | 
            rowid.x== rowid.y+2 | rowid.x== rowid.y+3) %>%
   group_by(meet_id) %>%
   mutate(encounter= "1hlater")
-f_2h<- f_encounters %>%
+f_2h<- f_boden %>%
   filter(rowid.x %in% c(rowid.y+4, rowid.y+5, rowid.y+6, rowid.y+7)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "2hlater")
-f_3h<- f_encounters %>%
+f_3h<- f_boden %>%
   filter(rowid.x %in% c(rowid.y+8, rowid.y+9, rowid.y+10, rowid.y+11)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "3hlater")
-f_4h<- f_encounters %>%
+f_4h<- f_boden %>%
   filter(rowid.x %in% c(rowid.y+12, rowid.y+13, rowid.y+14, rowid.y+15)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "4hlater")
-f_5h<- f_encounters %>%
+f_5h<- f_boden %>%
   filter(rowid.x %in% c(rowid.y+16, rowid.y+17, rowid.y+18, rowid.y+19)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "5hlater")
-f_6h<- f_encounters %>%
+f_6h<- f_boden %>%
   filter(rowid.x %in% c(rowid.y+20, rowid.y+21, rowid.y+22, rowid.y+23)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "6hlater")
 
-m_1h<- m_encounters %>%
+m_1h<- m_boden %>%
   filter(rowid.x== rowid.y | rowid.x== rowid.y+1 | 
            rowid.x== rowid.y+2 | rowid.x== rowid.y+3) %>%
   group_by(meet_id)%>%
   mutate(encounter= "1hlater")
-m_2h<- m_encounters %>%
+m_2h<- m_boden %>%
   filter(rowid.x %in% c(rowid.y+4, rowid.y+5, rowid.y+6, rowid.y+7)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "2hlater")
-m_3h<- m_encounters %>%
+m_3h<- m_boden %>%
   filter(rowid.x %in% c(rowid.y+8, rowid.y+9, rowid.y+10, rowid.y+11)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "3hlater")
-m_4h<- m_encounters %>%
+m_4h<- m_boden %>%
   filter(rowid.x %in% c(rowid.y+12, rowid.y+13, rowid.y+14, rowid.y+15)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "4hlater")
-m_5h<- m_encounters %>%
+m_5h<- m_boden %>%
   filter(rowid.x %in% c(rowid.y+16, rowid.y+17, rowid.y+18, rowid.y+19)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "5hlater")
-m_6h<- m_encounters %>%
+m_6h<- m_boden %>%
   filter(rowid.x %in% c(rowid.y+20, rowid.y+21, rowid.y+22, rowid.y+23)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "6hlater")
 
 # selection of the rows 1h before the encounter
-f_1h_sub<- f_encounters %>%
+f_1h_sub<- f_boden %>%
   filter(rowid.x %in% c(rowid.y-1, rowid.y-2, rowid.y-3, rowid.y-4)) %>%
   group_by(meet_id)%>%
   mutate(encounter= "1hbefore")
-m_1h_sub<- m_encounters %>%
+m_1h_sub<- m_boden %>%
   filter(rowid.x== rowid.y-1 | rowid.x== rowid.y-2 | 
            rowid.x== rowid.y-3 | rowid.x== rowid.y-4) %>%
   group_by(meet_id)%>%
@@ -424,7 +999,8 @@ comparison<-comparison %>%
 ggplot(data=comparison, aes(sex, speed, fill=sex))+
   geom_boxplot()+
   labs(title="Comparison of speed 1h after the encounter with a deterrence")+
-  ylab("speed [m/s]")
+  ylab("speed [m/s]")+
+  scale_fill_manual(values=c(col_6[2], col_6[5]))
 
 ```
 
@@ -444,32 +1020,39 @@ kruskal.test(speed~modus, data=m_1h) #p-value = 0.8446
 kruskal.test(speed~lautstaerke, data=m_1h) # p-value = 0.02788 speed differs significantly with volume
 # kruskal.test(speed~intervall, data=m_1h) # error - all encounters happened when intervall=15min.
 
-# FIX THE COLORS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # boxplots speed-modus
 f_speed_modus<- f_1h %>%
   group_by(modus) %>%
   ggplot() + 
   geom_boxplot(aes(x=modus, y=speed, group=modus, fill=modus)) +
-  ylab("speed [m/s]")
+  ylab("speed [m/s]")+
+  scale_fill_manual(values=c(col_6[1], col_6[2], col_6[4], col_6[5]))+
+  theme_minimal()
 
 m_speed_modus<- m_1h %>%
   group_by(modus)%>%
   ggplot()+
   geom_boxplot(aes(x=modus, y=speed, group=modus, fill=modus)) +
-  ylab("speed [m/s]")
+  ylab("speed [m/s]")+
+  scale_fill_manual(values=c(col_6[2], col_6[4], col_6[5]))+
+  theme_minimal()
 
 # boxplots speed-lautstaerke
 f_speed_vol<- f_1h %>%
   group_by(lautstaerke) %>%
   ggplot() + 
   geom_boxplot(aes(x=lautstaerke, y=speed, group=lautstaerke, fill=as.factor(lautstaerke))) +
-  ylab("speed [m/s]")
+  ylab("speed [m/s]")+
+  scale_fill_manual(values=c(col_6[5], col_6[4], col_6[2], col_6[1]))+
+  theme_minimal()
 
 m_speed_vol<- m_1h %>%
   group_by(lautstaerke)%>%
   ggplot()+
   geom_boxplot(aes(x=lautstaerke, y=speed, group=lautstaerke, fill=as.factor(lautstaerke)))+
-  ylab("speed [m/s]")
+  ylab("speed [m/s]")+
+  scale_fill_manual(values=c( col_6[5], col_6[4]))+
+  theme_minimal()
 
 
 f_speed_modus
@@ -514,7 +1097,9 @@ comparison_dist<-comparison_dist %>%
 ggplot(data=comparison_dist, aes(sex, dist, fill=sex))+
   geom_boxplot()+
   labs(title="Comparison of flight distance within one hour \n of the encounter with a deterrence")+
-  ylab("distance [m]")
+  ylab("distance [m]")+
+  scale_fill_manual(values=c(col_6[2], col_6[5]))+
+  theme_minimal()
 ```
 Does volume or modus have an influence on distance 1h after encounter
 ```{r }
@@ -533,23 +1118,31 @@ kruskal.test(dist~lautstaerke, data=m_1h_dist) # p-value = 0.03573 distance diff
 f_dist_modus<- f_1h_dist %>%
   group_by(modus) %>%
   ggplot() + 
-  geom_boxplot(aes(x=modus, y=dist, group=modus, fill=modus))
+  geom_boxplot(aes(x=modus, y=dist, group=modus, fill=modus))+
+  scale_fill_manual(values=c(col_6[1], col_6[2], col_6[4], col_6[5]))+
+  theme_minimal()
 
 m_dist_modus<- m_1h_dist %>%
   group_by(modus)%>%
   ggplot()+
-  geom_boxplot(aes(x=modus, y=dist, group=modus, fill=modus))
+  geom_boxplot(aes(x=modus, y=dist, group=modus, fill=modus))+
+  scale_fill_manual(values=c(col_6[2], col_6[4], col_6[5]))+
+  theme_minimal()
 
 # boxplots dist-lautstaerke
 f_dist_vol<- f_1h_dist %>%
   group_by(lautstaerke) %>%
   ggplot() + 
-  geom_boxplot(aes(x=lautstaerke, y=dist, group=lautstaerke, fill=as.factor(lautstaerke)))
+  geom_boxplot(aes(x=lautstaerke, y=dist, group=lautstaerke, fill=as.factor(lautstaerke)))+
+  scale_fill_manual(values=c(col_6[5], col_6[4], col_6[2], col_6[1]))+
+  theme_minimal()
 
 m_dist_vol<- m_1h_dist %>%
   group_by(lautstaerke)%>%
   ggplot()+
-  geom_boxplot(aes(x=lautstaerke, y=dist, group=lautstaerke, fill=as.factor(lautstaerke)))
+  geom_boxplot(aes(x=lautstaerke, y=dist, group=lautstaerke, fill=as.factor(lautstaerke)))+
+  scale_fill_manual(values=c(col_6[5], col_6[4]))+
+  theme_minimal()
 
 f_dist_modus
 m_dist_modus
@@ -569,7 +1162,9 @@ kruskal.test(dist~encounter, data=f_dist) # p-value = 2.641e-12 - the distances 
 f_dist_encounter<- f_dist %>%
   group_by(encounter) %>%
   ggplot() + 
-  geom_boxplot(aes(x=encounter, y=dist, group=encounter, fill=encounter))
+  geom_boxplot(aes(x=encounter, y=dist, group=encounter, fill=encounter))+
+  scale_fill_manual(values=col_6)+
+  theme_minimal()
 
 f_dist_encounter
 
@@ -584,33 +1179,11 @@ kruskal.test(dist~encounter, data=m_dist) # p-value = 0.001761 - the distances e
 m_dist_encounter<- m_dist %>%
   group_by(encounter) %>%
   ggplot() + 
-  geom_boxplot(aes(x=encounter, y=dist, group=encounter, fill=encounter))
+  geom_boxplot(aes(x=encounter, y=dist, group=encounter, fill=encounter))+
+  scale_fill_manual(values=col_6)+
+  theme_minimal()
 
 m_dist_encounter
-```
-
-
-Comparison of trajectories from the same deterrence location
-
-```{r }
-
-
-ggplot()+
-  geom_sf(data=f_buffer, fill="grey", alpha=.4, color="grey")+
-  geom_sf(data=f_1h, aes(color=as.factor(meet_id)), size=.7, shape=1)+
-  facet_wrap(~id) +
-  theme(legend.position = "none")+
-  coord_sf(datum=2056)
-
-
-ggplot()+
-  geom_sf(data=m_buffer, fill="grey", alpha=.4, color="grey")+
-  geom_sf(data=m_encounters, aes(color=as.factor(meet_id)), size=.7, shape=1)+
-  facet_wrap(~id) +
-  theme(legend.position = "none")+
-  coord_sf(datum=2056)
-
-# why tf are there soo many encounter in the female side? 
 ```
 
 
